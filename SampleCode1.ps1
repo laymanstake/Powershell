@@ -196,25 +196,24 @@ $Password = "Master@123"
 $SecurePassword = ConvertTo-SecureString $Password -AsPlainText -Force
 [pscredential]$credObject = New-Object System.Management.Automation.PSCredential ($userName, $SecurePassword)
 
-(Get-Credential).GetNetworkCredential().Password
-
-# Decrypting secure string
-$password = ConvertTo-SecureString 'P@ss$w0rd' -AsPlainText -Force
-$Ptr = [System.Runtime.InteropServices.Marshal]::SecureStringToCoTaskMemUnicode($password)
-$result = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($Ptr)
-[System.Runtime.InteropServices.Marshal]::ZeroFreeCoTaskMemUnicode($Ptr)
-
+(Get-Credential).GetNetworkCredential().Password # Easily getting back the password as plain text
 
 Read-Host "Enter Password" -AsSecureString |  ConvertFrom-SecureString | Out-File "C:\Temp\Password.txt"
 $pass = Get-Content "C:\Temp\Password.txt" | ConvertTo-SecureString
-
 $User = "MyUserName"
 $File = "C:\Temp\Password.txt"
 $MyCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, (Get-Content $File | ConvertTo-SecureString)
 
+$MyCredential.GetNetworkCredential().Password # Easily getting back the password as plain text
+
 # Saving the credential to file using Windows Data Protection API
 # In order for DAPI to work, the GPO setting Network Access: Do not allow storage of passwords and credentials for network authentication must be set to Disabled (or not configured).  Otherwise the encryption key will only last for the lifetime of the user session (i.e. upon user logoff or a machine reboot, the key is lost and it cannot decrypt the secure string text)
 
+Get-Credential  -Message "Provide admin credentials" | Export-CliXml -Path "C:\temp\myCred_$($env:USERNAME)_$($env:COMPUTERNAME).xml"
+$UserCredential = Import-CliXml -Path "C:\temp\myCred_${env:USERNAME}_${env:COMPUTERNAME}.xml"
+
+
+# resuable code suitable for Windows OS and for general usages
 If ([System.IO.File]::Exists("C:\temp\myCred_${env:USERNAME}_${env:COMPUTERNAME}.xml")) {
     $UserCredential = Import-CliXml -Path "C:\temp\myCred_${env:USERNAME}_${env:COMPUTERNAME}.xml"
 }
@@ -230,22 +229,108 @@ Else {
     }
 }
 
-# Create the credential file with custom encryption key
+# Create the credential file with custom encryption key, only password
 $PasswordFile = "c:\temp\mypassword.txt"
 $KeyFile = "c:\temp\my.keyfile"
-
-
-$key = 0..255 | Get-Random -Count 32 | ForEach-Object { [byte]$_ } # 32 means AES encryption
-$Key | out-file $KeyFile
-
-$Key = Get-Content $KeyFile
+$key = 0..255 | Get-Random -Count 32 | ForEach-Object { [byte]$_ } | out-file $KeyFile # 32 means AES encryption
+$User = "MyUserName"
 $Password = Read-Host "Please enter your password" -AsSecureString
 $Password | ConvertFrom-SecureString -Key $Key | Out-File $PasswordFile
-
-$User = "MyUserName"
-$key = Get-Content $KeyFile
+$Key = Get-Content $KeyFile
 $MyCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, (Get-Content $PasswordFile | ConvertTo-SecureString -Key $key)
 
+
+
+# Create the credential file in xml format where both username and passwords are encrypted
+# Generate a random key and save it to a file
+$KeyFile = "c:\temp\my.keyfile"
+$key = 0..255 | Get-Random -Count 32 | ForEach-Object { [byte]$_ } | out-file $KeyFile # 32 means AES encryption
+
+# Get the credential object from the user
+$cred = Get-Credential
+$secureUserName = ConvertTo-SecureString -String $cred.UserName -AsPlainText -Force
+$securePassword = $cred.Password
+$encryptedUserName = ConvertFrom-SecureString -SecureString $secureUserName -Key $key
+$encryptedPassword = ConvertFrom-SecureString -SecureString $securePassword -Key $key
+
+# Create a custom object with the encrypted username and password
+$object = [PSCustomObject]@{
+    UserName = $encryptedUserName
+    Password = $encryptedPassword
+}
+# Export the object to an XML file
+$object | Export-Clixml -Path "C:\temp\credfile.xml"
+
+
+$key = Get-Content -Path "C:\temp\keyfile.txt"
+$object = Import-Clixml -Path "C:\temp\credfile.xml"
+
+# Decrypt both the username and the password with the key and convert them to secure strings
+$encryptedUserName = $object.UserName
+$secureUserName = ConvertTo-SecureString -String $encryptedUserName -Key $key
+$plainUserName = ConvertFrom-SecureString -SecureString $secureUserName -Key $key -AsPlainText
+
+$encryptedPassword = $object.Password
+$securePassword = ConvertTo-SecureString -String $encryptedPassword -Key $key
+$cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $plainUserName, $securePassword
+
+
+
+
+
+
+#EndRegion
+
+#Region PowerShell Jobs
+
+$maxParallelJobs = 50
+$null = Get-Job | Remove-Job
+$jobs = @()
+
+while ((Get-Job -State Running).Count -ge $maxParallelJobs) {
+    Start-Sleep -Milliseconds 50  # Wait for 0.05 seconds before checking again
+} 
+
+$ScriptBlock = {
+    param($computer)
+            
+    try {                
+        $Service = (Get-Service adfssrv, adsync).Name
+    }
+    catch {
+        Write-Output "Could get Service details from $computer : $($_.Exception.Message)"
+    }           
+
+    if ($service) {
+        if ($service -contains "adfssrv") {
+            $adfs = $computer                   
+        }
+        if ($service -contains "adsync" ) {                    
+            $aad = $computer
+        }
+    }
+
+    Return $adfs, $aad
+}
+
+if (Test-Connection -ComputerName $_.Name -count 1 -Quiet ) {
+    $jobs += Start-Job -ScriptBlock $scriptBlock -ArgumentList $_.Name
+}
+
+
+$null = Wait-Job -Job $jobs
+
+foreach ($job in $jobs) {
+    $result = Receive-Job -Job $job
+    $null = Remove-Job -Job $job
+ 
+    if ($result[0]) {
+        $adfsServers += $result[0]
+    }
+    if ($result[1]) {
+        $aadconnectservers += $result[1]
+    }
+}
 
 #EndRegion
 
