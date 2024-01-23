@@ -293,11 +293,11 @@ $func = {
         $PhysicalMemory = Get-WmiObject Win32_PhysicalMemory -ComputerName $hostname | Measure-Object -Property capacity -Sum | ForEach-Object { "{0:N0}" -f ($_.sum / 1GB) }
 
         $infoObject = New-Object PSObject -Property @{
-            ServerName = $hostname
-            "IP Address" = (Resolve-DnsName $hostname | Where-Object { $_.type -eq "A" }).IPAddress -join ","
+            ServerName      = $hostname
+            "IP Address"    = (Resolve-DnsName $hostname | Where-Object { $_.type -eq "A" }).IPAddress -join ","
             OperatingSystem = (Get-WmiObject win32_operatingsystem -ComputerName $hostname).caption
-            Processor = ($CPUInfo.Name -join ",")
-            MemoryInGb = $PhysicalMemory
+            Processor       = ($CPUInfo.Name -join ",")
+            MemoryInGb      = $PhysicalMemory
         }
         return $infoObject
     }
@@ -308,7 +308,7 @@ $Servers = ("XYZ", "ABC", "QWERTY")
 $i = $Servers.count
 
 ForEach ($hostname in $Servers) {    
-    $f1 = { Inventory $using:hostname    }
+    $f1 = { Inventory $using:hostname }
 
     If (Test-Connection $hostname -Quiet -Ping) {
         Start-Job -Name "Inventory.$hostname" -InitializationScript $func -ScriptBlock $f1 | Out-Null
