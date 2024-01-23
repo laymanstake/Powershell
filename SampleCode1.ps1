@@ -282,6 +282,57 @@ $cred = New-Object -TypeName System.Management.Automation.PSCredential -Argument
 
 #Region PowerShell Jobs
 
+$func = {
+    function Inventory {
+        [CmdletBinding()]
+        Param(
+            [Parameter(ValueFromPipeline = $true, mandatory = $true)]$hostname
+        )
+
+        $CPUInfo = Get-WmiObject Win32_Processor -ComputerName $hostname
+        $PhysicalMemory = Get-WmiObject Win32_PhysicalMemory -ComputerName $hostname | Measure-Object -Property capacity -Sum | ForEach-Object { "{0:N0}" -f ($_.sum / 1GB) }
+
+        $infoObject = New-Object PSObject -Property @{
+            ServerName = $hostname
+            "IP Address" = (Resolve-DnsName $hostname | Where-Object { $_.type -eq "A" }).IPAddress -join ","
+            OperatingSystem = (Get-WmiObject win32_operatingsystem -ComputerName $hostname).caption
+            Processor = ($CPUInfo.Name -join ",")
+            MemoryInGb = $PhysicalMemory
+        }
+        return $infoObject
+    }
+}
+
+$Servers = ("XYZ", "ABC", "QWERTY")
+
+$i = $Servers.count
+
+ForEach ($hostname in $Servers) {    
+    $f1 = { Inventory $using:hostname    }
+
+    If (Test-Connection $hostname -Quiet -Ping) {
+        Start-Job -Name "Inventory.$hostname" -InitializationScript $func -ScriptBlock $f1 | Out-Null
+    }
+    Else {
+        Write-Host "$hostname not reachable"
+    }
+}
+
+While (Get-Job "Inventory*" | Where-Object { $_.State -eq "Running" }) {    
+    $CurrentRunningJobs = (Get-Job "Inventory*" | Where-Object { $_.State -eq "Running" }).count
+    Write-Progress -Activity "Jobs are running, please wait." -Status "$($CurrentRunningJobs) jobs running" -PercentComplete (100 * ($i - $CurrentRunningJobs) / $i)    
+    Start-Sleep 1
+}
+
+#Collecting the data from Jobs
+$Result = @()
+foreach ($Job in (Get-Job | Where-Object { $_.Name -like "Inventory.*" })) {
+    $JobResult = $null
+    $JobResult = Receive-Job $Job
+    $Result += $JobResult
+    Remove-Job $Job
+}
+`
 
 # A practical use
 $maxParallelJobs = 50
@@ -333,4 +384,3 @@ foreach ($job in $jobs) {
 }
 
 #EndRegion
-
