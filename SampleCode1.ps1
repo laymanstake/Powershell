@@ -187,6 +187,44 @@ Function Get-ComputerDetail {
 
 #EndRegion
 
+#Region Progress bar
+
+# Simple sample progress bar
+for ($i = 1; $i -le 100; $i++ ) {
+    Write-Progress -Activity "Search in Progress" -Status "$i% Complete:" -PercentComplete $i
+    Start-Sleep -Milliseconds 250
+}
+
+# Nested progress bar sample
+$items = 1..10
+$i = 1
+foreach ($item in $items) {
+    write-progress -id 1 -activity "Parent Progress Bar" -status "Iteration $item" -percentComplete ($i++ / $items.count * 100)
+    $j = 1
+    foreach ($child in $items) {
+        write-progress -parentId 1 -activity "Child Progress Bar" -status "Iteration $item`.$child" -percentComplete ($j++ / $items.count * 100)
+        Start-sleep 1
+    }
+}
+
+
+# Practical use
+$Files = Get-ChildItem -Path "C:\Source"
+$Destination = "C:\Destination"
+$TotalFiles = $Files.Count
+$Count = 0
+Write-Progress -Activity "Copying Files" -Status "Starting" -PercentComplete 0
+foreach ($File in $Files) {
+    $Count++
+    $PercentComplete = (($Count / $TotalFiles) * 100)
+    $Status = "Copying $($File.Name)"
+    Write-Progress -Activity "Copying Files" -Status $Status -PercentComplete $PercentComplete
+    Copy-Item $File.FullName $Destination -Force
+}
+Write-Progress -Activity "Copying Files" -Status "Complete" -PercentComplete 100
+
+#Endregion
+
 #Region Credentials
 
 # Basic way
@@ -281,6 +319,23 @@ $cred = New-Object -TypeName System.Management.Automation.PSCredential -Argument
 #EndRegion
 
 #Region PowerShell Jobs
+
+$lognames = (get-eventlog -List).Log
+
+Measure-Command {
+    $logs = $logNames | ForEach-Object {
+        Get-WinEvent -LogName $_ -MaxEvents 5000 2>$null
+    }
+}
+
+Measure-Command {
+    $logs = $logNames | ForEach {
+        Start-ThreadJob {
+            Get-WinEvent -LogName $using:_ -MaxEvents 5000 2>$null
+        } -ThrottleLimit 10
+    } | Wait-Job | Receive-Job
+}
+
 
 $func = {
     function Inventory {
