@@ -1,4 +1,3 @@
-
 #Region Enabling Help
 
 Function Get-ComputerDetail {
@@ -283,6 +282,8 @@ $cred = New-Object -TypeName System.Management.Automation.PSCredential -Argument
 
 #Region PowerShell Jobs
 
+
+# A practical use
 $maxParallelJobs = 50
 $null = Get-Job | Remove-Job
 $jobs = @()
@@ -316,7 +317,6 @@ $ScriptBlock = {
 if (Test-Connection -ComputerName $_.Name -count 1 -Quiet ) {
     $jobs += Start-Job -ScriptBlock $scriptBlock -ArgumentList $_.Name
 }
-
 
 $null = Wait-Job -Job $jobs
 
