@@ -69,6 +69,24 @@ Write-Host "Hello world! $env:username"
 
 #EndRegion
 
+#Region Select-String
+
+# Adapter Name
+(ipconfig | Select-string -Pattern 'Ethernet adapter (.*):' ) | ForEach-Object { $_.matches.groups[1].value }
+ipconfig | Select-string -Pattern 'IPV4 Address[\.|\s]+: (.*)' | ForEach-Object { $_.Matches.Groups[1].Value } 
+# This part matches the literal text “IPV4 Address” followed by either a dot (.) or a whitespace character (\s) one or more times ( + ), followed by a colon (:). This part is used to locate the line that contains the IPv4 address in the output of the ipconfig command.
+
+ipconfig | Select-string -Pattern 'Subnet mask[\.|\s]+: (.*)' | ForEach-Object { $_.Matches.Groups[1].Value }
+ipconfig /all | Select-string -Pattern 'DNS Servers[\.|\s]+: (.*)' | ForEach-Object { $_.Matches.Groups[1].Value }
+
+#EndRegion
+
+#Region Get-Content
+
+Get-Content -path (get-childitem -Path *.txt) | Select-Object @{l = "Text"; e = { $_ -join "," } }, PSPath | group-object PSPath | Select-Object Name, @{l = "Text"; e = { $_.Group.Text -join "`n" } }  | fl
+
+#Endregion
+
 #Region Function
 
 Param([Parameter(Mandatory = $True)][String[]]$Computer)
