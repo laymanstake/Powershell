@@ -18,7 +18,7 @@ Function Get-ComputerDetail {
     [CmdletBinding()]
     Param([Parameter(ValuefromPipeline = $true, Mandatory = $True)][String[]]$Computer, [switch]$LogicalProc)
 
-    ForEach ($Machine in $Computer) {
+     ForEach ($Machine in $Computer) {
         $Win32Computer = Get-CimInstance -ClassName Win32_ComputerSystem -ComputerName $Machine
         $Win32OS = Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $Machine
 
@@ -89,23 +89,23 @@ Get-Content -path (get-childitem -Path *.txt) | Select-Object @{l = "Text"; e = 
 
 #Region Function
 
-Param([Parameter(Mandatory = $True)][String[]]$Computer)
+function Get-ComputerDetail {
+    Param([Parameter(Mandatory = $True)][String[]]$Computer)
 
-ForEach ($Machine in $Computer) {
-    $Win32Computer = Get-CimInstance -ClassName Win32_ComputerSystem -ComputerName $Machine
-    $Win32OS = Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $Machine
+    ForEach ($Machine in $Computer) {
+        $Win32Computer = Get-CimInstance -ClassName Win32_ComputerSystem -ComputerName $Machine
+        $Win32OS = Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $Machine
 
-    $CombinedObj = @{
-        ComputerName = $Machine
-        Memory       = $Win32Computer.TotalPhysicalMemory
-        FreeMemory   = $Win32OS.FreePhysicalMemory
-        Processor    = $Win32Computer.NumberOfProcessors
-        OSVersion    = $Win32OS.Version
+        $CombinedObj = @{
+            ComputerName = $Machine
+            Memory       = $Win32Computer.TotalPhysicalMemory
+            FreeMemory   = $Win32OS.FreePhysicalMemory
+            Processor    = $Win32Computer.NumberOfProcessors
+            OSVersion    = $Win32OS.Version
+        }
+        $OutputObj = New-Object -TypeName psobject -Property $CombinedObj
+        $OutputObj
     }
-
-    $OutputObj = New-Object -TypeName psobject -Property $CombinedObj
-
-    Write-Output $OutputObj
 }
 
 #EndRegion
