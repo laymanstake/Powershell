@@ -176,10 +176,11 @@ Function Write-CustomEvent {
     Param(  [Parameter(Mandatory = $True)]$LogName,
             [Parameter(Mandatory = $True)]$Source,
             [Parameter(Mandatory = $True)][int]$Eventid,
+            [Parameter(ValueFromPipeline = $true, mandatory = $false)][ValidateSet('“Information”', 'Error', 'Warning')]$EntryType = "Information",
             [Parameter(Mandatory = $True)]$message
     )
     Try {
         New-EventLog -LogName $Logname -Source $Source –ErrorAction SilentlyContinue
     } catch {}
-    Write-EventLog –LogName $logname –Source $Source –EntryType “Information” –EventId $EventId –message $message
+    Write-EventLog –LogName $logname –Source $Source –EntryType $EntryType –EventId $EventId –message $message
 }
