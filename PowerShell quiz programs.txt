@@ -17,6 +17,7 @@ My phone number # 2 is +1-45466-3443-22
 
 3. Write a one-liner that converts a string to uppercase and replaces all spaces with underscores. For example, “Hello World” should become “HELLO_WORLD”.
 
+("Hello world").ToUpper().Replace(" ","_")
 
 4. Write a one-liner or code which extracts the various tests and their results from dcdiag output
 
@@ -93,20 +94,16 @@ function Get-DiskSpace {
 function Get-FolderSize {
     Param([parameter(mandatory=$True)][validatescript({if(Test-Path $_){$true} else {throw "$_ is not valid path"}})]$Path)
     $folders = Get-ChildItem -Path $Path -Directory -force
-    foreach ($folder in $folders) {
-        $folderPath = $folder.FullName
-        $folderName = $folder.Name
-        $subfolders = Get-ChildItem -Path $folderPath -Directory -Recurse
-        $files = Get-ChildItem -Path $folderPath -File -Recurse -force
+    foreach ($folder in $folders) {        
+        $files = Get-ChildItem -Path $folder.FullName -File -Recurse -force
         $size = "{0:N2}" -f (($files | Measure-Object -Property Length -Sum).Sum/1gb)
-        $fileCount = $files.Count
-        $subfolderCount = $subfolders.Count
+        $fileCount = $files.Count       
 
         [PSCustomObject]@{
-            FolderName = $folderName
-            FolderPath = $folderPath
+            FolderName = $folder.Name
+            FolderPath = $folder.FullName
             Size = $size
-            SubfoldersCount = $subfolderCount
+            SubfoldersCount = (Get-ChildItem -Path $folder.FullName -Directory -Recurse).count
             FileCount = $fileCount
         }
     }
