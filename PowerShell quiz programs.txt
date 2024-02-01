@@ -12,7 +12,7 @@ Write-Output "$($Greeting | Get-Random) $name"
 My phone number # 2 is +1-45466-3443-22
 
 
-"My phone number # 2 is +1-45466-3443-22" | Select-String -Pattern "\+\d{1}-\d{5}-\d{4}-\d{2}"
+("My phone number # 2 is +1-45466-3443-22" | Select-String -Pattern "\+\d{1}-\d{5}-\d{4}-\d{2}" ).Matches.groups[0].value
 
 
 3. Write a one-liner that converts a string to uppercase and replaces all spaces with underscores. For example, “Hello World” should become “HELLO_WORLD”.
