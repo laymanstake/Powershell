@@ -197,10 +197,15 @@ Function Write-CustomEvent {
             [Parameter(ValueFromPipeline = $true, mandatory = $false)][ValidateSet('“Information”', 'Error', 'Warning')]$EntryType = "Information",
             [Parameter(Mandatory = $True)]$message
     )
+    $DebugPreference = 'Continue'
     Try {
-        New-EventLog -LogName $Logname -Source $Source –ErrorAction SilentlyContinue
-    } catch {}
-    Write-EventLog –LogName $logname –Source $Source –EntryType $EntryType –EventId $EventId –message $message
+        Write-Verbose "Attempting to create new log source for $Logname by name $source"
+        New-EventLog -LogName $Logname -Source $Source -ErrorAction stop
+        Write-EventLog –LogName $logname –Source $Source –EntryType $EntryType –EventId $EventId –message $message
+    } catch {
+        Write-debug "It tried but could not create log source $($source): $($_.exception.message)"
+        continue
+    }    
 }
 
 
@@ -214,3 +219,35 @@ Register-ScheduledTask -TaskName Greeing -Trigger $trigger -Action $action
 18. Write a code, which lists all folders in the given path and then all the files names in that folder in another columns
 
 Get-Childitem c:\temp -Directory | select-Object Name, @{l="Files";e={(Get-Childitem $_.Fullname -File).name -join ","}}
+
+19. Write a code, which tries to delete a file, which is non-existent and then throws the exception.
+
+try {    Remove-Item -Path "C:\temp\file.txt" -ErrorAction Stop}
+catch {    $error[0].exception.message}
+
+20. Write a code, which tries to close open instances of notepad and throws an exception since no notepad instance is running
+
+21. Write a code which creates a text file c:\temp\file1.txt and then launches notepad as minimized while opening the same file.
+
+try {
+    New-Item -Path "C:\temp\file1.txt" -ItemType File -Force
+    $process = start-process -FilePath notepad -WindowStyle Minimized -ArgumentList c:\temp\file1.txt -PassThru
+    Write-Host "Notepad process started with ID $($process.Id)."    
+    Pause
+}
+catch [System.IO.FileNotFoundException] {
+    Write-Host "The file was not found."
+}
+catch [System.UnauthorizedAccessException] {
+    Write-Host "Access to the file was denied."
+}
+catch {
+    Write-Warning $($Error[0].Exception.Message)
+}
+finally {
+    Write-Host "Cleaning up resources."    
+    if ($process) {
+        Write-Host "Closing Notepad process with ID $($process.Id)."
+        $process | Stop-Process
+    }
+}
