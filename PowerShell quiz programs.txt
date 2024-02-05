@@ -21,7 +21,7 @@ My phone number # 2 is +1-45466-3443-22
 
 4. Write a one-liner or code which extracts the various tests and their results from dcdiag output
 
-$dcdiag | select-String -Pattern "\. (.*) \b(passed|failed)\b test (.*)" | %{ [pscustomobject]@{Entity=$_.matches.groups[1].value;Result=$_.matches.groups[2].value;TestName=$_.matches.groups[3].value }}
+$dcdiag | select-String -Pattern "\. (.*) \b(passed|failed)\b test (.*)" | %{ [pscustomobject]@{Entity=$_.matches.groups[1].value;TestName=$_.matches.groups[3].value;Result=$_.matches.groups[2].value }}
 
 5. Write a one-liner which find the top 5 processes taking memory, shows their name, Starttime and Memory used in MB
 Get-process | Sort-object WorkingSet64 -Descending | Select-Object Name, StartTime, @{l="MemoryinMB";e={"{0:N2}" -f ($_.WorkingSet64/1MB)}} -First 5
