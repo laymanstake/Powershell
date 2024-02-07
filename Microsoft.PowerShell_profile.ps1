@@ -2,31 +2,22 @@ function Get-PSTaskManager {
 	<#
         .SYNOPSIS
         This function produces common columns of the Windows Task Manager
-
         .DESCRIPTION
         This is just for educational purpose. This function produces common columns of the Windows Task Manager
-
         .PARAMETER Name
         No parameters supported
-
-        .PARAMETER Extension
-         No parameters supported
-
         .INPUTS
-        None. 
-
+        None. It doens't accept pipeline input
         .OUTPUTS
         System.Object[]
-
         .EXAMPLE
         PS> Get-PSTask-Manager
-
         .LINK
-        https://nitishkumar.net/2023/06/17/ps-script-to-perform-complete-ad-environment-assessment/
+        https://github.com/laymanstake
         #>
 
 	[CmdletBinding(
-        	HelpURI='https://nitishkumar.net'
+		HelpURI='https://nitishkumar.net'
 	)]
     Param ()	
 	$PerDetails = Get-CimInstance -className Win32_PerfFormattedData_PerfProc_Process
@@ -35,6 +26,22 @@ function Get-PSTaskManager {
 
 
 function Get-DiskSpace {
+	<#
+        .SYNOPSIS
+        This function provides details of disk drives, their size in GBs and free disk space.
+        .DESCRIPTION
+        This is just for educational purpose. This function provides details of disk drives, their size in GBs and free disk space. It can get the information from multiple computers
+        .PARAMETER Servers
+        Specify Computername or an array of computer names
+        .INPUTS
+        None. It doesn't support input via pipeline
+        .OUTPUTS
+        System.Object[]
+        .EXAMPLE
+        PS> Get-DiskSpace -Server Computer1, Computer2
+        .LINK
+        https://nitishkumar.net/2022/11/03/collection-of-ps-functions-for-useful-gui-elements/
+        #>
     Param([parameter(mandatory=$True)]$servers)
 	ForEach ($Server in $Servers) {
 		Get-WmiObject -Class Win32_logicaldisk -computer $Server | Select-object PSComputername, VolumeName, DeviceID, @{Name = "SizeGB"; Expression = { $_.Size / 1GB -as [int] } }, @{Name = "UsedGB"; Expression = { "{0:N2}" -f (($_.Size - $_.Freespace) / 1GB) } }, @{Name = "FreeGB"; Expression = { "{0:N2}" -f ($_.FreeSpace / 1GB) } }
@@ -43,6 +50,23 @@ function Get-DiskSpace {
 
 
 function Get-FolderSize {
+	<#
+	.SYNOPSIS
+	This function provides folder size and file counts for the given path
+	.DESCRIPTION
+	This is just for educational purpose. This function provides folder size and file counts for the given path
+	.PARAMETER Path
+	Specify path to be checked for folders.
+	.INPUTS
+	None. It doesn't support input via pipeline
+	.OUTPUTS
+	System.Object[]
+	.EXAMPLE
+	PS> Get-FolderSize -Path "c:\temp"
+	.LINK
+	https://nitishkumar.net/2022/10/24/one-stop-bash-script-to-setup-prometheus-grafana-and-windows-exporter-on-centos-linux-machine/
+	#>
+
     Param([parameter(mandatory=$True)][validatescript({if(Test-Path $_){$true} else {throw "$_ is not valid path"}})]$Path)
     $folders = Get-ChildItem -Path $Path -Directory -force -ErrorAction SilentlyContinue
     foreach ($folder in $folders) {
@@ -66,6 +90,22 @@ function Get-FolderSize {
 
 
 function Get-RandomPassword{
+	<#
+	.SYNOPSIS
+	This function provides a random passsword of the given number of words, min 4 characters and maximum 80 characters
+	.DESCRIPTION
+	This is just for educational purpose. This function provides a random passsword of the given number of words. Password returned would include at least one Caps, one small letter, one numeric and one special character.
+	.PARAMETER Count
+	Specify number of characters in the password
+	.INPUTS
+	None. It doesn't support input via pipeline
+	.OUTPUTS
+	System.String
+	.EXAMPLE
+	PS> Get-RandomPassword -count 8
+	.LINK
+	https://nitishkumar.net/2022/10/21/one-stop-powershell-script-to-setup-prometheus-grafana-and-windows-exporter-on-windows-machine/
+	#>
 	param ([Parameter(Mandatory=$true)][validatescript({$_ -ge 4 -and $_ -le 80})][int]$Count)
 
 	$rest = ""	
@@ -80,6 +120,22 @@ function Get-RandomPassword{
 }
 
 function Get-WebPageInfo {
+	<#
+	.SYNOPSIS
+	This function provides status of a given URL
+	.DESCRIPTION
+	This is just for educational purpose. This function provides status of a given URL
+	.PARAMETER URL
+	Specify the URL as string
+	.INPUTS
+	None. It doesn't support input via pipeline
+	.OUTPUTS
+	System.Object[]
+	.EXAMPLE
+	PS> Get-WebPageInfo
+	.LINK
+	https://nitishkumar.net/2021/09/05/powershell-sharepoint-mass-deletion-alert/
+	#>
     param ([Parameter(Mandatory=$true)][string]$URL)
     $response = Invoke-WebRequest -Uri $URL
     $info = $response | Select-Object -Property StatusCode, StatusDesciption
@@ -88,6 +144,22 @@ function Get-WebPageInfo {
 
 
 function IsPrime {
+	<#
+	.SYNOPSIS
+	This function checks if an given integer is a PRIME number or not
+	.DESCRIPTION
+	This is just for educational purpose. This function checks if an given integer is a PRIME number or not
+	.PARAMETER Number
+	Specify the integer
+	.INPUTS
+	None. It doesn't support input via pipeline
+	.OUTPUTS
+	System.Boolean
+	.EXAMPLE
+	PS> IsPrime -Number 1771
+	.LINK
+	https://nitishkumar.net/2019/03/10/powershell-for-servers-inventory/
+	#>
 	Param([parameter(mandatory=$True)][validatescript({If($_ -gt 0 -AND $_ -lt 10000){$true} else {throw "$_ is not valid, input an integer betweek 1-10000"}})][int]$Number)
 	if($Number -le 1) {return $false }# 1 is neither composite nor prime
 	for($i=2;$i -lt $number;$i++){	if($number % $i -eq 0){ return $false}}
@@ -95,14 +167,58 @@ function IsPrime {
 }
 
 function Get-PrimeFactors{
+	<#
+	.SYNOPSIS
+	This function provides prime factors of a given integer
+	.DESCRIPTION
+	This is just for educational purpose. This function provides prime factors of a given integer
+	.PARAMETER Number
+	Specify the integer
+	.INPUTS
+	None. It doesn't support input via pipeline
+	.OUTPUTS
+	System.String
+	.EXAMPLE
+	PS> Get-PrimeFactors -Number 1771
+	.LINK
+	https://nitishkumar.net/2018/08/24/file-share-inventory-for-all-dfs-shares-via-powershell-permissions-and-size/
+	#>
+
     param ([Parameter(Mandatory=$true)][int]$Number)
-    $factors = @();$divisor = 2
-    while ($Number -gt 1) {  
-	if ($Number % $divisor -eq 0) {     $factors += $divisor; $Number = $Number / $divisor   }
-        else {            $divisor++        }    }
-    return ($factors -join " x ")}
+    $factors = @()
+	$divisor = 2
+    
+	while ($Number -gt 1) {  
+		if ($Number % $divisor -eq 0) {     
+			$factors += $divisor
+			$Number = $Number / $divisor   
+		}
+		else {            
+			$divisor++        
+		}    
+	}
+    return ($factors -join " x ")
+}
 
 Function Advanced-Netstat {
+	<#
+	.SYNOPSIS
+	This function provides advanced details of the incoming and outgoing connections on the given machine
+	.DESCRIPTION
+	This is just for educational purpose. This function provides advanced details of the incoming and outgoing connections on the given machine
+	.PARAMETER
+	None
+	.INPUTS
+	None. It doesn't support input via pipeline
+	.OUTPUTS
+	System.Object[]
+	.EXAMPLE
+	PS> Advanced-NetStat 
+	.LINK
+	https://nitishkumar.net/2018/04/08/powershell-script-for-dns-inventory/
+	#>	
+
+	param ()
 $ipAddresses = @()
 #[int]$i = 0
 
@@ -158,6 +274,22 @@ $netstat.ForEach(
 }
 
 Function Super-Netstat {
+	<#
+	.SYNOPSIS
+	This function provides advanced details of the incoming and outgoing IP Addresses connected to the machine
+	.DESCRIPTION
+	This is just for educational purpose. This function provides advanced details of the incoming and outgoing IP Addresses connected to the machine
+	.PARAMETER
+	None
+	.INPUTS
+	None. It doesn't support input via pipeline
+	.OUTPUTS
+	System.Object[]
+	.EXAMPLE
+	PS> Advanced-NetStat 
+	.LINK
+	https://nitishkumar.net/2018/04/08/powershell-script-for-dns-inventory/
+	#>	
 	[CmdletBinding(SupportsShouldProcess)]
 	Param()
 	$netstat = netstat -bn | Select-Object -Skip 4
@@ -196,5 +328,5 @@ function prompt {
 	$a = Get-History -Count 1
 	Write-host " $([math]::Round(($a.EndExecutionTime - $a.StartExecutionTime).TotalSeconds, 2)) seconds " -ForeGroundColor GREEN -nonewline
 }
- 
+
 #Clear-Host
