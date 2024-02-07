@@ -17,11 +17,7 @@ function Get-PSTaskManager {
         #>
 
 	[CmdletBinding(
-<<<<<<< HEAD
 		HelpURI = 'https://nitishkumar.net'
-=======
-		HelpURI='https://nitishkumar.net'
->>>>>>> 02c7a0706b1eb8c6dbaf67dbddcf40618df7c113
 	)]
 	Param ()	
 	$PerDetails = Get-CimInstance -className Win32_PerfFormattedData_PerfProc_Process
@@ -46,11 +42,7 @@ function Get-DiskSpace {
         .LINK
         https://nitishkumar.net/2022/11/03/collection-of-ps-functions-for-useful-gui-elements/
         #>
-<<<<<<< HEAD
 	Param([parameter(mandatory = $True)]$servers)
-=======
-    Param([parameter(mandatory=$True)]$servers)
->>>>>>> 02c7a0706b1eb8c6dbaf67dbddcf40618df7c113
 	ForEach ($Server in $Servers) {
 		Get-WmiObject -Class Win32_logicaldisk -computer $Server | Select-object PSComputername, VolumeName, DeviceID, @{Name = "SizeGB"; Expression = { $_.Size / 1GB -as [int] } }, @{Name = "UsedGB"; Expression = { "{0:N2}" -f (($_.Size - $_.Freespace) / 1GB) } }, @{Name = "FreeGB"; Expression = { "{0:N2}" -f ($_.FreeSpace / 1GB) } }
 	}
@@ -74,20 +66,6 @@ function Get-FolderSize {
 	.LINK
 	https://nitishkumar.net/2022/10/24/one-stop-bash-script-to-setup-prometheus-grafana-and-windows-exporter-on-centos-linux-machine/
 	#>
-<<<<<<< HEAD
-=======
-
-    Param([parameter(mandatory=$True)][validatescript({if(Test-Path $_){$true} else {throw "$_ is not valid path"}})]$Path)
-    $folders = Get-ChildItem -Path $Path -Directory -force -ErrorAction SilentlyContinue
-    foreach ($folder in $folders) {
-        $folderPath = $folder.FullName
-        $folderName = $folder.Name
-        $subfolders = Get-ChildItem -Path $folderPath -Directory -Recurse -ErrorAction SilentlyContinue
-        $files = Get-ChildItem -Path $folderPath -File -Recurse -force -ErrorAction SilentlyContinue
-        $size = "{0:N2}" -f (($files | Measure-Object -Property Length -Sum).Sum/1gb)
-        $fileCount = $files.Count
-        $subfolderCount = $subfolders.Count
->>>>>>> 02c7a0706b1eb8c6dbaf67dbddcf40618df7c113
 
 	Param([parameter(mandatory = $True)][validatescript({ if (Test-Path $_) { $true } else { throw "$_ is not valid path" } })]$Path)
 	$folders = Get-ChildItem -Path $Path -Directory -force -ErrorAction SilentlyContinue
@@ -111,11 +89,7 @@ function Get-FolderSize {
 }
 
 
-<<<<<<< HEAD
 function Get-RandomPassword {
-=======
-function Get-RandomPassword{
->>>>>>> 02c7a0706b1eb8c6dbaf67dbddcf40618df7c113
 	<#
 	.SYNOPSIS
 	This function provides a random passsword of the given number of words, min 4 characters and maximum 80 characters
@@ -132,11 +106,7 @@ function Get-RandomPassword{
 	.LINK
 	https://nitishkumar.net/2022/10/21/one-stop-powershell-script-to-setup-prometheus-grafana-and-windows-exporter-on-windows-machine/
 	#>
-<<<<<<< HEAD
 	param ([Parameter(Mandatory = $true)][validatescript({ $_ -ge 4 -and $_ -le 80 })][int]$Count)
-=======
-	param ([Parameter(Mandatory=$true)][validatescript({$_ -ge 4 -and $_ -le 80})][int]$Count)
->>>>>>> 02c7a0706b1eb8c6dbaf67dbddcf40618df7c113
 
 	$rest = ""	
 	$upper = Get-Random -InputObject ([char[]]"ABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -166,17 +136,10 @@ function Get-WebPageInfo {
 	.LINK
 	https://nitishkumar.net/2021/09/05/powershell-sharepoint-mass-deletion-alert/
 	#>
-<<<<<<< HEAD
 	param ([Parameter(Mandatory = $true)][string]$URL)
 	$response = Invoke-WebRequest -Uri $URL
 	$info = $response | Select-Object -Property StatusCode, StatusDesciption
 	return $info
-=======
-    param ([Parameter(Mandatory=$true)][string]$URL)
-    $response = Invoke-WebRequest -Uri $URL
-    $info = $response | Select-Object -Property StatusCode, StatusDesciption
-    return $info
->>>>>>> 02c7a0706b1eb8c6dbaf67dbddcf40618df7c113
 }
 
 
@@ -197,7 +160,6 @@ function IsPrime {
 	.LINK
 	https://nitishkumar.net/2019/03/10/powershell-for-servers-inventory/
 	#>
-<<<<<<< HEAD
 	Param([parameter(mandatory = $True)][validatescript({ If ($_ -gt 0 -AND $_ -lt 10000) { $true } else { throw "$_ is not valid, input an integer betweek 1-10000" } })][int]$Number)
 	if ($Number -le 1) { return $false }# 1 is neither composite nor prime
 	for ($i = 2; $i -lt $number; $i++) {	if ($number % $i -eq 0) { return $false } }
@@ -205,15 +167,6 @@ function IsPrime {
 }
 
 function Get-PrimeFactors {
-=======
-	Param([parameter(mandatory=$True)][validatescript({If($_ -gt 0 -AND $_ -lt 10000){$true} else {throw "$_ is not valid, input an integer betweek 1-10000"}})][int]$Number)
-	if($Number -le 1) {return $false }# 1 is neither composite nor prime
-	for($i=2;$i -lt $number;$i++){	if($number % $i -eq 0){ return $false}}
-	return $true
-}
-
-function Get-PrimeFactors{
->>>>>>> 02c7a0706b1eb8c6dbaf67dbddcf40618df7c113
 	<#
 	.SYNOPSIS
 	This function provides prime factors of a given integer
@@ -231,13 +184,8 @@ function Get-PrimeFactors{
 	https://nitishkumar.net/2018/08/24/file-share-inventory-for-all-dfs-shares-via-powershell-permissions-and-size/
 	#>
 
-<<<<<<< HEAD
 	param ([Parameter(Mandatory = $true)][int]$Number)
 	$factors = @()
-=======
-    param ([Parameter(Mandatory=$true)][int]$Number)
-    $factors = @()
->>>>>>> 02c7a0706b1eb8c6dbaf67dbddcf40618df7c113
 	$divisor = 2
     
 	while ($Number -gt 1) {  
@@ -249,40 +197,26 @@ function Get-PrimeFactors{
 			$divisor++        
 		}    
 	}
-<<<<<<< HEAD
 	return ($factors -join " x ")
-=======
-    return ($factors -join " x ")
->>>>>>> 02c7a0706b1eb8c6dbaf67dbddcf40618df7c113
 }
 
 Function Advanced-Netstat {
 	<#
 	.SYNOPSIS
-	This function provides advanced details of the incoming and outgoing connections on the given machine
+	This function provides prime factors of a given integer
 	.DESCRIPTION
-	This is just for educational purpose. This function provides advanced details of the incoming and outgoing connections on the given machine
-	.PARAMETER
-	None
+	This is just for educational purpose. This function provides prime factors of a given integer
+	.PARAMETER Number
+	Specify the integer
 	.INPUTS
 	None. It doesn't support input via pipeline
 	.OUTPUTS
-	System.Object[]
+	System.String
 	.EXAMPLE
-	PS> Advanced-NetStat 
+	PS> Get-PrimeFactors -Number 1771
 	.LINK
-	https://nitishkumar.net/2018/04/08/powershell-script-for-dns-inventory/
-	#>	
-<<<<<<< HEAD
-=======
-
-	param ()
-$ipAddresses = @()
-#[int]$i = 0
->>>>>>> 02c7a0706b1eb8c6dbaf67dbddcf40618df7c113
-
-	[CmdletBinding(SupportsShouldProcess)]
-	Param ()
+	https://nitishkumar.net/2018/08/24/file-share-inventory-for-all-dfs-shares-via-powershell-permissions-and-size/
+	#>
 
 	$ipAddresses = @()
 	#[int]$i = 0
@@ -303,7 +237,7 @@ $ipAddresses = @()
 
 				$geoData = Invoke-RestMethod -Method Get -Uri "http://ip-api.com/json/$($RemoteAddress)"
 				$ipAddresses += $geoData
-		    
+
 				if ($geoData.country) {
 					$_ | Add-Member -NotePropertyName RemoteCity -NotePropertyValue $geoData.city
 					$_ | Add-Member -NotePropertyName RemoteCountry -NotePropertyValue $geoData.country
@@ -352,16 +286,11 @@ Function Super-Netstat {
 	.OUTPUTS
 	System.Object[]
 	.EXAMPLE
-<<<<<<< HEAD
 	PS> Super-NetStat 
-=======
-	PS> Advanced-NetStat 
->>>>>>> 02c7a0706b1eb8c6dbaf67dbddcf40618df7c113
 	.LINK
 	https://nitishkumar.net/2018/04/08/powershell-script-for-dns-inventory/
-	#>	
-	[CmdletBinding(SupportsShouldProcess)]
-	Param()
+	#>
+	
 	$netstat = netstat -bn | Select-Object -Skip 4
 	$ipAddresses = @()
 	$Finalresults = @()
