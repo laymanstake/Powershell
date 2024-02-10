@@ -1,3 +1,36 @@
+
+function Read-Text {
+	<#
+        .SYNOPSIS
+        This function reads the provided text
+        .DESCRIPTION
+        This is just for educational purpose. This function reads the provided text
+        .PARAMETER Text
+        Specify string of text
+        .INPUTS
+        None. It doesn't support input via pipeline
+        .OUTPUTS
+        System.Object[]
+        .EXAMPLE
+        PS> Read-Text -Text "Hi! My name is Nitish Kumar"
+
+        .EXAMPLE
+        PS> "Hi! My name is Nitish Kumar" | Read-text
+
+        .LINK
+        https://nitishkumar.net/2022/11/03/collection-of-ps-functions-for-useful-gui-elements/
+        #>
+	[CmdletBinding()]
+	Param(	[Parameter(ValuefromPipeline = $true, Mandatory = $True)]
+		[String]$Text
+	)
+	
+	Add-Type -AssemblyName System.Speech
+	$ATAVoiceEngine = New-Object System.Speech.Synthesis.SpeechSynthesizer	
+	$ATAVoiceEngine.SelectVoice("Microsoft Zira Desktop")
+	$ATAVoiceEngine.Speak($text)
+}
+
 function Get-PSTaskManager {
 	<#
         .SYNOPSIS
