@@ -1,3 +1,40 @@
+
+function Read-Text {
+	<#
+        .SYNOPSIS
+        This function reads the provided text
+        .DESCRIPTION
+        This is just for educational purpose. This function reads the provided text
+        .PARAMETER Text
+        Specify string of text
+        .INPUTS
+        None. It doesn't support input via pipeline
+        .OUTPUTS
+        System.Object[]
+        .EXAMPLE
+        PS> Read-Text -Text "Hi! My name is Nitish Kumar"
+
+        .EXAMPLE
+        PS> "Hi! My name is Nitish Kumar" | Read-text
+
+        .LINK
+        https://nitishkumar.net/2022/11/03/collection-of-ps-functions-for-useful-gui-elements/
+        #>
+	[CmdletBinding()]
+	Param(	[Parameter(ValuefromPipeline = $true, Mandatory = $True)]
+		[String]$Text
+	)
+	
+	Add-Type -AssemblyName System.Speech
+	$ATAVoiceEngine = New-Object System.Speech.Synthesis.SpeechSynthesizer	
+	$ATAVoiceEngine.SelectVoice("Microsoft Zira Desktop")
+	if ($Text -AND $Text -ne "`n") {
+		$ATAVoiceEngine.Speak($text)
+		$Text
+	}
+}
+
+
 function Get-PSTaskManager {
 	<#
         .SYNOPSIS
@@ -203,17 +240,17 @@ function Get-PrimeFactors {
 Function Advanced-Netstat {
 	<#
 	.SYNOPSIS
-	This function provides Advanced NetStat functionality
+	This function provides prime factors of a given integer
 	.DESCRIPTION
-	This is just for educational purpose. This function provides Advanced NetStat functionality and provides IP related details via IP-API
-	.PARAMETER None
-	None
+	This is just for educational purpose. This function provides prime factors of a given integer
+	.PARAMETER Number
+	Specify the integer
 	.INPUTS
 	None. It doesn't support input via pipeline
 	.OUTPUTS
-	System.Object[]
+	System.String
 	.EXAMPLE
-	PS> Advanced-NetStat
+	PS> Get-PrimeFactors -Number 1771
 	.LINK
 	https://nitishkumar.net/2018/08/24/file-share-inventory-for-all-dfs-shares-via-powershell-permissions-and-size/
 	#>
@@ -279,7 +316,7 @@ Function Super-Netstat {
 	This function provides advanced details of the incoming and outgoing IP Addresses connected to the machine
 	.DESCRIPTION
 	This is just for educational purpose. This function provides advanced details of the incoming and outgoing IP Addresses connected to the machine
-	.PARAMETER None
+	.PARAMETER
 	None
 	.INPUTS
 	None. It doesn't support input via pipeline
@@ -318,12 +355,33 @@ Function Super-Netstat {
 	$Finalresults | Sort-Object Country 
 }
 
-function prompt {
-	set-executionPolicy Unrestricted -Scope CurrentUser
-	set-PSReadLineOption -Colors @{ InlinePrediction = "$([char]0x1b)[96m" }
-	Write-Host "$(Get-Date) | $($pwd.path):" -foregroundcolor BLACK -nonewline -backgroundcolor CYAN
-	$a = Get-History -Count 1
-	Write-host " $([math]::Round(($a.EndExecutionTime - $a.StartExecutionTime).TotalSeconds, 2)) seconds " -ForeGroundColor GREEN -nonewline
+function Get-PublicIP {
+	<#
+	.SYNOPSIS
+		Gets the public IP address
+	.DESCRIPTION
+		This is for educational purposes. It gets the public IP address of the current machine. 	
+	.LINK
+		https://nitishkumar.net
+	.EXAMPLE
+		Get-PublicIP		
+	#>
+	
+	Invoke-RestMethod -Method Get -Uri "http://ip-api.com/json/$(invoke-restMethod -Method Get -Uri "http://api.ipify.org")"
 }
 
-#Clear-Host
+function Get-Temperature {
+	<#
+	.SYNOPSIS
+		Gets the temperature for the current public IP area
+	.DESCRIPTION
+		This is for educational purposes. Gets the temperature for the current public IP area.
+	.LINK
+		https://nitishkumar.net
+	.EXAMPLE
+		Get-Temperature
+	#>
+	
+	$PublicIP = Get-PublicIP
+	((invoke-RestMethod -Method Get -Uri "https://api.open-meteo.com/v1/forecast?latitude=$($PublicIP.lat)&longitude=$($PublicIP.lon)&current=temperature_2m") | select-Object @{l = "Temperature"; e = { "$($_.current.temperature_2m)$($_.current_units.temperature_2m)" } }).Temperature
+}

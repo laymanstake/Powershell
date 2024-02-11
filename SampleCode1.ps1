@@ -18,7 +18,7 @@ Function Get-ComputerDetail {
     [CmdletBinding()]
     Param([Parameter(ValuefromPipeline = $true, Mandatory = $True)][String[]]$Computer, [switch]$LogicalProc)
 
-     ForEach ($Machine in $Computer) {
+    ForEach ($Machine in $Computer) {
         $Win32Computer = Get-CimInstance -ClassName Win32_ComputerSystem -ComputerName $Machine
         $Win32OS = Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $Machine
 

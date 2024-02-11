@@ -1,3 +1,4 @@
+
 function Read-Text {
 	<#
         .SYNOPSIS
@@ -27,8 +28,12 @@ function Read-Text {
 	Add-Type -AssemblyName System.Speech
 	$ATAVoiceEngine = New-Object System.Speech.Synthesis.SpeechSynthesizer	
 	$ATAVoiceEngine.SelectVoice("Microsoft Zira Desktop")
-	$ATAVoiceEngine.Speak($text)
+	if ($Text -AND $Text -ne "`n") {
+		$ATAVoiceEngine.Speak($text)
+		$Text
+	}
 }
+
 
 function Get-PSTaskManager {
 	<#
@@ -350,12 +355,46 @@ Function Super-Netstat {
 	$Finalresults | Sort-Object Country 
 }
 
+function Get-PublicIP {
+	<#
+	.SYNOPSIS
+		Gets the public IP address
+	.DESCRIPTION
+		This is for educational purposes. It gets the public IP address of the current machine. 	
+	.LINK
+		https://nitishkumar.net
+	.EXAMPLE
+		Get-PublicIP		
+	#>
+	
+	Invoke-RestMethod -Method Get -Uri "http://ip-api.com/json/$(invoke-restMethod -Method Get -Uri "http://api.ipify.org")"
+}
+
+function Get-Temperature {
+	<#
+	.SYNOPSIS
+		Gets the temperature for the current public IP area
+	.DESCRIPTION
+		This is for educational purposes. Gets the temperature for the current public IP area.
+	.LINK
+		https://nitishkumar.net
+	.EXAMPLE
+		Get-Temperature
+	#>
+	
+	$PublicIP = Get-PublicIP
+	((invoke-RestMethod -Method Get -Uri "https://api.open-meteo.com/v1/forecast?latitude=$($PublicIP.lat)&longitude=$($PublicIP.lon)&current=temperature_2m") | select-Object @{l = "Temperature"; e = { "$($_.current.temperature_2m)$($_.current_units.temperature_2m)" } }).Temperature
+}
+
 function prompt {
 	set-executionPolicy Unrestricted -Scope CurrentUser
 	set-PSReadLineOption -Colors @{ InlinePrediction = "$([char]0x1b)[96m" }
-	Write-Host "$(Get-Date) | $($pwd.path):" -foregroundcolor BLACK -nonewline -backgroundcolor CYAN
+
+	
+
+	Write-Host "$((Get-Date).ToString("dd/MM/yy")) | $($pwd.path):" -foregroundcolor BLACK -nonewline -backgroundcolor CYAN
 	$a = Get-History -Count 1
-	Write-host " $([math]::Round(($a.EndExecutionTime - $a.StartExecutionTime).TotalSeconds, 2)) seconds " -ForeGroundColor GREEN -nonewline
+	Write-host " $([math]::Round(($a.EndExecutionTime - $a.StartExecutionTime).TotalSeconds, 2))s " -ForeGroundColor GREEN -nonewline
 }
 
 #Clear-Host
