@@ -1,4 +1,3 @@
-
 function Read-Text {
 	<#
         .SYNOPSIS
