@@ -1,4 +1,4 @@
-#region Miscellaneous
+#Region Miscellaneous
 
 Think plan 
 learning -ne code from internet
@@ -45,24 +45,24 @@ Get-MgUser -UserId manish.kumar@atos.net -ExpandProperty manager | Select displa
 Get-MgGroupMember -GroupId 2cef9a5b-cbe1-4d0e-a464-0ab5e598379f -Property * | select * -ExpandProperty additionalProperties | Select-Object @{l="UserPrincipalName";e={$_.AdditionalProperties["userPrincipalName"]}}, @{l="DisplayName";e={$_.AdditionalProperties["displayName"]}}, @{l="mobilephone";e={$_.AdditionalProperties["mobilePhone"]}}, @{l="mailnickname";e={$_.AdditionalProperties["mailNickname"]}}, @{l="accountEnabled";e={$_.AdditionalProperties["accountEnabled"]}}, @{l="WhenCreated";e={$_.AdditionalProperties["createdDateTime"]}}, @{l="OnPremDomain";e={$_.AdditionalProperties["onPremisesDomainName"]}}
 
 
-# endregion
+#Endregion
 
-#region HELP
+#Region HELP
 
 Get-command Get-ChildItem | Select-Object Name, Commandtype, @{l="Description";e={(Get-Help $_.name).Synopsis}},HelpUri | format-list
 
 
-#endRegion
+#EndRegion
 
-#region PING
+#Region PING
 
 $pingObj = new-object System.Net.NetworkInformation.ping
 $PingAnswer = $pingObj.Send("Google.com")
 $PingAnswer.status
 
-#endRegion
+#EndRegion
 
-#region SIGNING
+#Region SIGNING
 
 $params = @{
     Subject = 'CN=PowerShell Code Signing Cert'
@@ -74,7 +74,7 @@ $cert = New-SelfSignedCertificate @params
 
 Set-AuthenticodeSignature add-signature.ps1 $cert
 
-#endRegion
+#EndRegion
 
 #region Credential
 
