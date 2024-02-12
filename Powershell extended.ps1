@@ -1,4 +1,6 @@
 #Region Miscellaneous
+
+<#
 Think plan 
 learning -ne code from internet
 
@@ -8,9 +10,10 @@ $Array = @()
 $array = New-Object System.Collections.ArrayList
 (1..200).ForEach({ (1..$_).ForEach({ $null = $array.add("x") }) })
 
+
 Function Help (optional)
 Function Name
-[Cmdletbinding()] (optional)
+#[Cmdletbinding()] (optional)
 parameters (optional)
 function logic (optional begin process end)
 return (optional)
@@ -42,13 +45,12 @@ Get-MgUser -UserId manish.kumar@atos.net -ExpandProperty manager | Select displa
 
 Get-MgGroupMember -GroupId 2cef9a5b-cbe1-4d0e-a464-0ab5e598379f -Property * | select * -ExpandProperty additionalProperties | Select-Object @{l="UserPrincipalName";e={$_.AdditionalProperties["userPrincipalName"]}}, @{l="DisplayName";e={$_.AdditionalProperties["displayName"]}}, @{l="mobilephone";e={$_.AdditionalProperties["mobilePhone"]}}, @{l="mailnickname";e={$_.AdditionalProperties["mailNickname"]}}, @{l="accountEnabled";e={$_.AdditionalProperties["accountEnabled"]}}, @{l="WhenCreated";e={$_.AdditionalProperties["createdDateTime"]}}, @{l="OnPremDomain";e={$_.AdditionalProperties["onPremisesDomainName"]}}
 
-
+#>
 #Endregion
 
 #Region HELP
 
-Get-command Get-ChildItem | Select-Object Name, Commandtype, @{l="Description";e={(Get-Help $_.name).Synopsis}},HelpUri | format-list
-
+Get-command Get-ChildItem | Select-Object Name, Commandtype, @{l = "Description"; e = { (Get-Help $_.name).Synopsis } }, HelpUri | format-list
 
 #EndRegion
 
@@ -63,10 +65,10 @@ $PingAnswer.status
 #Region SIGNING
 
 $params = @{
-    Subject = 'CN=PowerShell Code Signing Cert'
-    Type = 'CodeSigning'
-    CertStoreLocation = 'Cert:\CurrentUser\My'
-    HashAlgorithm = 'sha256'
+	Subject           = 'CN=PowerShell Code Signing Cert'
+	Type              = 'CodeSigning'
+	CertStoreLocation = 'Cert:\CurrentUser\My'
+	HashAlgorithm     = 'sha256'
 }
 $cert = New-SelfSignedCertificate @params
 
@@ -74,37 +76,40 @@ Set-AuthenticodeSignature add-signature.ps1 $cert
 
 #EndRegion
 
-#region Credential
+#Region Credential
 
-If ([System.IO.File]::Exists("C:\temp\myCred_${env:USERNAME}_${env:COMPUTERNAME}.xml")){
-		$UserCredential = Import-CliXml -Path "C:\temp\myCred_${env:USERNAME}_${env:COMPUTERNAME}.xml"
-} Else {
+If ([System.IO.File]::Exists("C:\temp\myCred_${env:USERNAME}_${env:COMPUTERNAME}.xml")) {
+	$UserCredential = Import-CliXml -Path "C:\temp\myCred_${env:USERNAME}_${env:COMPUTERNAME}.xml"
+}
+Else {
 	$Answer = Read-host "Want to create credentials file to re-use (Y/N)"
 	If ($Answer.ToUpper() -eq "Y") {
 		Get-Credential  -Message "Provide O365 admin credentials" | Export-CliXml -Path "C:\temp\myCred_$($env:USERNAME)_$($env:COMPUTERNAME).xml"
 		Write-Output "`nCredentials file created."  -Foregroundcolor GREEN -Backgroundcolor White
-	} Else {
+	}
+	Else {
 		Write-Output "`nThese credentials would not be saved for later run." -Foregroundcolor RED -Backgroundcolor YELLOW
-		$UserCredential = Get-Credential	}
+		$UserCredential = Get-Credential	
+	}
 }
 
 new-StoredCredential -Target O1365 -Credentials (Get-Credential) -Persist LocalMachine
 Get-StoredCredential -target O365
-#end Region
+#EndRegion
 
 #Region Editing file access time
 
 $it = get-item C:\temp\caconfig.ps1
 $it.CreationTime = (Get-Date).AddYears(-100)
 
-#Endregion
+#EndRegion
 
-#region Regular Expression
+#Region Regular Expression
 [regex]::Escape()
 
 \s whitespace, \w word charater. \d any digit, [] character group [a-c1-3], \b boundary
 if CAPS then opposite effect, ^ in group means opposite
-* 0 or more times, + 1 or more time, {2} 2 times, {2,5} min 2 time and max 5 times
+* 0 or more times, + 1 or more time, { 2 } 2 times, { 2, 5 } min 2 time and max 5 times
 $ means end of line
 
 ipconfig | Select-String -Pattern "IPv4 Address[.\s]*:\s*([\d.]+)\s*$" | ForEach-Object { $_.Matches.Groups[1].Value }
