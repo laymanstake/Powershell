@@ -16,10 +16,9 @@ function logic (optional begin process end)
 return (optional)
 
 getProperties()
-
 [DateTime] | Get-Member -Static
-
 $obj | Add-Memeber -NotePropertyMembers @{LineCount = 0 }
+([math].DeclaredMethods | Select-Object Name -Unique ).Name -join ", "
 
 With hashtable, you need getEnumerator() for going through foreach.
 
