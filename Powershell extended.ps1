@@ -1,13 +1,12 @@
 #Region Miscellaneous
-
 Think plan 
 learning -ne code from internet
 
 $Array = @()
-(1..200).ForEach({(1..$_).ForEach({$array += "x"})})
+(1..200).ForEach({ (1..$_).ForEach({ $array += "x" }) })
 
 $array = New-Object System.Collections.ArrayList
-(1..200).ForEach({(1..$_).ForEach({$null = $array.add("x")})})
+(1..200).ForEach({ (1..$_).ForEach({ $null = $array.add("x") }) })
 
 Function Help (optional)
 Function Name
@@ -20,7 +19,7 @@ getProperties()
 
 [DateTime] | Get-Member -Static
 
-$obj | Add-Memeber -NotePropertyMembers @{LineCount = 0}
+$obj | Add-Memeber -NotePropertyMembers @{LineCount = 0 }
 
 With hashtable, you need getEnumerator() for going through foreach.
 
