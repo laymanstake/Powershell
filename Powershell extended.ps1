@@ -1,15 +1,12 @@
 #Region Miscellaneous
-
 <#
-Think plan 
-learning -ne code from internet
+Think plan learning -ne code from internet
 
 $Array = @()
 (1..200).ForEach({ (1..$_).ForEach({ $array += "x" }) })
 
 $array = New-Object System.Collections.ArrayList
 (1..200).ForEach({ (1..$_).ForEach({ $null = $array.add("x") }) })
-
 
 Function Help (optional)
 Function Name
@@ -24,15 +21,11 @@ $obj | Add-Memeber -NotePropertyMembers @{LineCount = 0 }
 ([math].DeclaredMethods | Select-Object Name -Unique ).Name -join ", "
 
 With hashtable, you need getEnumerator() for going through foreach.
-
 You can't use Write-Verbose etc unless you are using cmdletbinding. cmdletbinding can provide whatif option if SupportsShouldProcess enabled and begin, process, end blocks there
-
 Default values do not work with mandatory parameters
 
 [appdomain]::CurrentDomain.GetAssemblies().Where({-not($_.IsDynamic)}).ForEach({$_.GetExportedTypes().Where({$_.IsPublic -AND $_.IsEnum})}) | Sort-Object Name
-
 [appdomain]::CurrentDomain.GetAssemblies().Where({-not($_.IsDynamic)}).ForEach({$_.GetExportedTypes().Where({$_.IsPublic -AND $_.IsEnum})}) | Sort-Object Name  | Select-Object name, fullname, @{l="Values";e={($_.declaredmembers | ?{$_.Name -ne "value__"}).Name -join ","}}
-
 [system.enum]::GetValues([system.dayOfweek])
 
 
