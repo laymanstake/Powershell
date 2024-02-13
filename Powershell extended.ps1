@@ -38,6 +38,9 @@ Get-MgUser -UserId manish.kumar@atos.net -ExpandProperty manager | Select displa
 
 Get-MgGroupMember -GroupId 2cef9a5b-cbe1-4d0e-a464-0ab5e598379f -Property * | select * -ExpandProperty additionalProperties | Select-Object @{l="UserPrincipalName";e={$_.AdditionalProperties["userPrincipalName"]}}, @{l="DisplayName";e={$_.AdditionalProperties["displayName"]}}, @{l="mobilephone";e={$_.AdditionalProperties["mobilePhone"]}}, @{l="mailnickname";e={$_.AdditionalProperties["mailNickname"]}}, @{l="accountEnabled";e={$_.AdditionalProperties["accountEnabled"]}}, @{l="WhenCreated";e={$_.AdditionalProperties["createdDateTime"]}}, @{l="OnPremDomain";e={$_.AdditionalProperties["onPremisesDomainName"]}}
 
+(Get-MgUser -UserId nitish.kumar@atos.net ).psobject.properties | ?{$_.Value -AND $_.Value -notlike "Microsoft*"} | ft Name, Value
+(Get-azureadUser -SearchString nitish.kumar@atos.net ).psobject.properties | ?{$_.Value -AND $_.Value -notlike "Microsoft*"} | ft Name, Value
+
 #>
 #Endregion
 
