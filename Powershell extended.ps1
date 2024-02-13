@@ -2,6 +2,12 @@
 <#
 Think plan learning -ne code from internet
 
+.psm1 module
+.psd1 data file/manifest
+.ps1xml 
+.pscc session configuration
+.psrc role capabilities
+
 $Array = @()
 (1..200).ForEach({ (1..$_).ForEach({ $array += "x" }) })
 
