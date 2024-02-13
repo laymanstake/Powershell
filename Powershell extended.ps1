@@ -30,16 +30,39 @@ Default values do not work with mandatory parameters
 
 
 [psobject].assembly.gettype("System.Management.Automation.TypeAccelerators")::Get
+
+# paste your pattern here:
+$pattern = '^((?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+do
+{
+	$ip = Read-Host 'Enter IPv4'
+} while ($ip -notmatch $pattern)
+
+"Entered and validated IPv4: $ip"
 [ipaddress]
+
+function test-alias { 
+	switch($MyInvocation.InvocationName) {
+		Alias1 {Write-host "Command used was $($MyInvocation.InvocationName)"}
+		Alias2 {Write-host "Command used is $($MyInvocation.InvocationName)"}
+	} 
+}
 
 dont always use *return*
 
 Get-MgUser -UserId manish.kumar@atos.net -ExpandProperty manager | Select displayName, @{Name = 'Manager'; Expression = {$_.Manager.AdditionalProperties.displayName}}
-
 Get-MgGroupMember -GroupId 2cef9a5b-cbe1-4d0e-a464-0ab5e598379f -Property * | select * -ExpandProperty additionalProperties | Select-Object @{l="UserPrincipalName";e={$_.AdditionalProperties["userPrincipalName"]}}, @{l="DisplayName";e={$_.AdditionalProperties["displayName"]}}, @{l="mobilephone";e={$_.AdditionalProperties["mobilePhone"]}}, @{l="mailnickname";e={$_.AdditionalProperties["mailNickname"]}}, @{l="accountEnabled";e={$_.AdditionalProperties["accountEnabled"]}}, @{l="WhenCreated";e={$_.AdditionalProperties["createdDateTime"]}}, @{l="OnPremDomain";e={$_.AdditionalProperties["onPremisesDomainName"]}}
 
 (Get-MgUser -UserId nitish.kumar@atos.net ).psobject.properties | ?{$_.Value -AND $_.Value -notlike "Microsoft*"} | ft Name, Value
 (Get-azureadUser -SearchString nitish.kumar@atos.net ).psobject.properties | ?{$_.Value -AND $_.Value -notlike "Microsoft*"} | ft Name, Value
+
+((get-mguser -userId dd143ebf-5bb1-43da-b01f-cb581d321039) | Get-Member | ?{$_.MemberType -eq 'Property'}).Name -join ", "
+
+get-MgUserMailFolderMessageRule -UserId nitish.kumar@atos.net -MailFolderId Inbox
+Get-MgUserMailFolder -UserId nitish.kumar@atos.net | Select-Object DisplayName, IsHidden, TotalItemCount, UnreadItemCount, @{l="SizeInMb";e={$_.AdditionalProperties.("sizeInBytes")/1Mb}} | ft
+
+(Get-MgContext).scopes
+find-MgGraphCommand -Command Get-MgUserLicenseDetail
 
 #>
 #Endregion
