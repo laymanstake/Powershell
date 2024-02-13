@@ -385,3 +385,16 @@ function Get-Temperature {
 	$PublicIP = Get-PublicIP
 	((invoke-RestMethod -Method Get -Uri "https://api.open-meteo.com/v1/forecast?latitude=$($PublicIP.lat)&longitude=$($PublicIP.lon)&current=temperature_2m") | select-Object @{l = "Temperature"; e = { "$($_.current.temperature_2m)$($_.current_units.temperature_2m)" } }).Temperature
 }
+
+function prompt {
+	set-executionPolicy Unrestricted -Scope CurrentUser
+	set-PSReadLineOption -Colors @{ InlinePrediction = "$([char]0x1b)[96m" }
+
+	
+
+	Write-Host "$((Get-Date).ToString("dd/MM/yy")) | $($pwd.path):" -foregroundcolor BLACK -nonewline -backgroundcolor CYAN
+	$a = Get-History -Count 1
+	Write-host " $([math]::Round(($a.EndExecutionTime - $a.StartExecutionTime).TotalSeconds, 2))s " -ForeGroundColor GREEN -nonewline
+}
+
+#Clear-Host
