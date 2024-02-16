@@ -79,6 +79,35 @@ Get-command Get-ChildItem | Select-Object Name, Commandtype, @{l = "Description"
 
 #EndRegion
 
+#Region Advanced function
+function myname {
+	[CmdletBinding(SupportsShouldProcess)]
+	param(        
+		[Parameter(ValueFromPipeline)][string]$Name
+	)
+	Begin { 
+		Write-Output "Working on Begin block"
+		Write-Verbose "Looking into Verbose message in Begin with $Name"
+		Write-Debug "Looking into Debug message in Begin with $Name"
+	}
+	Process {
+		Write-Output "Working on Process block for $Name"
+		Write-Verbose "Looking into Verbose message in Process with $Name"
+		Write-Debug "Looking into Debug message in Process with $Name"
+
+		if ($PSCmdlet.ShouldProcess($Name)) {
+			$Name
+		}
+	}
+	End {
+		Write-Output "Working on End block"
+		Write-Verbose "Looking into Verbose message in End with $Name"
+		Write-Debug "Looking into Debug message in End with $Name"
+	}
+}
+#Endregion
+
+
 #Region PING
 
 $pingObj = new-object System.Net.NetworkInformation.ping
