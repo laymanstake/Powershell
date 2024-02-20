@@ -119,8 +119,6 @@ function Convert-ImageToAsciiArt {
 		[string]::Join('', $line)
 	}
     
-   
-	# Output the ASCII art.
 	Write-Output $asciiChars
 }
 
