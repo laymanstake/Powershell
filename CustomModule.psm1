@@ -160,7 +160,6 @@ function Read-Text {
 	#$speaker.speak($Text)
 }
 
-
 function Get-PSTaskManager {
 	<#
         .SYNOPSIS
