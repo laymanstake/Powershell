@@ -661,6 +661,17 @@ Function Get-ShareDetail {
 }
 
 Function Get-DirectReport {
+	<#
+	.SYNOPSIS
+		Function to get all direct reports under the given user recursively
+	.DESCRIPTION
+		Educational purposes only, function to get all direct reports under the given user recursively	
+	.LINK
+		https://github.com/laymanstake
+	.EXAMPLE
+		Get-DirectReport -user Ayush.Mishra
+	#>
+	
 	param (
 		# User SamAccountName required
 		[String]$user
@@ -703,6 +714,17 @@ Function Get-DirectReport-old {
 }
 
 Function Get-Permission {
+	<#
+	.SYNOPSIS
+		Function to get permission on given folder in readable format
+	.DESCRIPTION
+		Educational purposes only, Function to get permission on given folder in readable format
+	.LINK
+		https://github.com/laymanstake
+	.EXAMPLE
+		Get-Permission -Path c:\windows\Sysvol
+	#>
+
 	Param (
 		[Parameter(Mandatory)][ValidateScript({ Test-Path $_ })][String]$Path
 	)
