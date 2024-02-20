@@ -617,7 +617,7 @@ Function Get-ShareDetail {
 		if ($ACLS) {
 			ForEach ($ACL in $ACLs.Access) {
         
-				Switch ([long]$ACL.FileSystemRights) {
+				Switch ($ACL.FileSystemRights) {
 					2032127 { $AccessMask = "FullControl" }
 					1179785 { $AccessMask = "Read" }
 					1180063 { $AccessMask = "Read, Write" }
@@ -625,8 +625,8 @@ Function Get-ShareDetail {
 					{ -1610612736 } { $AccessMask = "ReadAndExecuteExtended" }                        
 					1245631 { $AccessMask = "ReadAndExecute, Modify, Write" }
 					1180095 { $AccessMask = "ReadAndExecute, Write" }
-					268435456 { $AccessMask = "FullControl (Sub Only)" }
-					{ $_ -notmatch '^[0-9]+$' -AND -NOT($_ -in ("-536084480")) -AND -NOT($_ -in ("-1610612736")) } { $AccessMask = $ACL.FileSystemRights }
+					268435456 { $AccessMask = "Write" }
+					{ $_ -notmatch '^[-]*[0-9]+$' -AND -NOT($_ -in ("-536084480")) } { $AccessMask = [string]$ACL.FileSystemRights }
 					default { $AccessMask = "SpecialPermissions" }
 				}
 				$IdentityReference = $ACL.Identityreference.Value
@@ -751,7 +751,7 @@ Function Get-Permission {
 				{ -1610612736 } { $AccessMask = "ReadAndExecuteExtended" }                        
 				1245631 { $AccessMask = "ReadAndExecute, Modify, Write" }
 				1180095 { $AccessMask = "ReadAndExecute, Write" }
-				268435456 { $AccessMask = "FullControl (Sub Only)" }
+				268435456 { $AccessMask = "Write" }
 				{ $_ -notmatch '^[-]*[0-9]+$' -AND -NOT($_ -in ("-536084480")) } { $AccessMask = [string]$ACL.FileSystemRights }
 				# -AND -NOT($_ -in ("-1610612736"))
 				default { $AccessMask = "SpecialPermissions" }
