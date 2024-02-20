@@ -588,17 +588,173 @@ function Get-Temperature {
 	((invoke-RestMethod -Method Get -Uri "https://api.open-meteo.com/v1/forecast?latitude=$($PublicIP.lat)&longitude=$($PublicIP.lon)&current=temperature_2m") | select-Object @{l = "Temperature"; e = { "$($_.current.temperature_2m)$($_.current_units.temperature_2m)" } }).Temperature
 }
 
-function prompt {
-	set-executionPolicy Unrestricted -Scope CurrentUser
-	set-PSReadLineOption -PredictionSource None
-	Set-PSReadLineOption -HistorySaveStyle SaveNothing
-	#set-PSReadLineOption -Colors @{ InlinePrediction = "$([char]0x1b)[96m" }
+Function Get-ShareDetail {
+	<#
+	.SYNOPSIS
+		This gets the share details for the given server
+	.DESCRIPTION
+		This is for educational purpose. This gets the share details for the given server	
+	.LINK
+		https://github.com/laymanstake
+	.EXAMPLE
+		Get-ShareDetail -Server Server1
+	#>	
 
-	
+	[CmdletBinding()]
+	Param (
+		# File server name
+		[Parameter(Mandatory)][String]$Server		
+	)
 
-	Write-Host "$((Get-Date).ToString("dd/MM/yy")) | $($pwd.path):" -foregroundcolor BLACK -nonewline -backgroundcolor CYAN
-	$a = Get-History -Count 1
-	Write-host " $([math]::Round(($a.EndExecutionTime - $a.StartExecutionTime).TotalSeconds, 2))s " -ForeGroundColor GREEN -nonewline
+	$Shares = Get-CIMInstance -class Win32_Share -Computername $Server | Select-Object Name, Path, @{l = "SharePath"; e = { "\\$server\$($_.Name)" } }, Status
+
+	$SharePermissions = ForEach ($Share in $Shares) {
+		try {
+			$ACLs = Get-ACL $Share.SharePath -ErrorAction Stop
+		}
+		catch {
+			Write-Host "Permissions denied on $($Share.SharePath)" -ForegroundColor YELLOW
+		}
+        
+		if ($ACLS) {
+			ForEach ($ACL in $ACLs.Access) {
+        
+				Switch ([long]$ACL.FileSystemRights) {
+					2032127 { $AccessMask = "FullControl" }
+					1179785 { $AccessMask = "Read" }
+					1180063 { $AccessMask = "Read, Write" }
+					1179817 { $AccessMask = "ReadAndExecute" }
+					{ -1610612736 } { $AccessMask = "ReadAndExecuteExtended" }                        
+					1245631 { $AccessMask = "ReadAndExecute, Modify, Write" }
+					1180095 { $AccessMask = "ReadAndExecute, Write" }
+					268435456 { $AccessMask = "FullControl (Sub Only)" }
+					{ $_ -notmatch '^[0-9]+$' -AND -NOT($_ -in ("-536084480")) -AND -NOT($_ -in ("-1610612736")) } { $AccessMask = $ACL.FileSystemRights }
+					default { $AccessMask = "SpecialPermissions" }
+				}
+				$IdentityReference = $ACL.Identityreference.Value
+				$AccessType = $AccessMask
+				$AccessControlType = $ACL.AccessControlType
+
+				[pscustomobject]@{
+					Name            = $Share.Name
+					Path            = $Share.Path
+					SharePath       = $Share.SharePath
+					Status          = $Share.Status
+					SharePermission = $IdentityReference
+					PermissionType  = $AccessType
+					Control         = $AccessControlType
+				}
+			}
+		}
+		else {
+			[pscustomobject]@{
+				Name            = $Share.Name
+				Path            = $Share.Path
+				SharePath       = $Share.SharePath
+				Status          = $Share.Status
+				SharePermission = "No access"
+				PermissionType  = "No access"
+				Control         = "No access"
+			}
+		}
+		$ACLs = ""
+	}
+	$SharePermissions
 }
 
-#Clear-Host
+Function Get-DirectReport {
+	param (
+		# User SamAccountName required
+		[String]$user
+	)
+    
+	$Reportees = New-Object System.Collections.Generic.List[PSObject]
+
+	$userDetail = Get-aduser -identity $User -Properties DirectReports, Manager    
+	$item = $userDetail | Select-Object Name, SamAccountName, Enabled, @{l = "Manager"; e = { $_.Manager.Split(“,”).Split(“=”)[1] } }    
+	$Reportees.Add($item)
+
+	if ($userDetail.DirectReports) {
+		ForEach ($Reportee in $userDetail.DirectReports) {            
+			$DirectReportees = Get-DirectReport -user $Reportee
+            
+			foreach ($DirectReportee in $DirectReportees) {
+				$Reportees.Add($DirectReportee)
+			}
+		}
+	}    
+	$Reportees
+}
+
+Function Get-DirectReport-old {
+	param (
+		# User SamAccountName required
+		[String]$user
+	)        
+    
+	$Reportees = @()
+	$userDetail = Get-aduser -identity $User -Properties DirectReports, Manager    
+	$Reportees += $userDetail | Select-Object Name, SamAccountName, Enabled, @{l = "Manager"; e = { $_.Manager.Split(“,”).Split(“=”)[1] } }    
+
+	if ($userDetail.DirectReports) {
+		ForEach ($Reportee in $userDetail.DirectReports) {            
+			Get-DirectReport-old -user $Reportee
+		}
+	}
+	$Reportees
+}
+
+Function Get-Permission {
+	Param (
+		[Parameter(Mandatory)][ValidateScript({ Test-Path $_ })][String]$Path
+	)
+
+	try {
+		$ACLs = Get-ACL $Path -ErrorAction Stop
+	}
+	catch {
+		Write-Host "Permissions denied on $($Path)" -ForegroundColor YELLOW
+	}
+        
+	if ($ACLS) {
+		ForEach ($ACL in $ACLs.Access) {
+
+			$IdentityReference = ""
+			$AccessType = ""
+			$AccessControlType = ""
+        
+			Switch ($ACL.FileSystemRights) {
+				2032127 { $AccessMask = "FullControl" }
+				1179785 { $AccessMask = "Read" }
+				1180063 { $AccessMask = "Read, Write" }
+				1179817 { $AccessMask = "ReadAndExecute" }
+				{ -1610612736 } { $AccessMask = "ReadAndExecuteExtended" }                        
+				1245631 { $AccessMask = "ReadAndExecute, Modify, Write" }
+				1180095 { $AccessMask = "ReadAndExecute, Write" }
+				268435456 { $AccessMask = "FullControl (Sub Only)" }
+				{ $_ -notmatch '^[-]*[0-9]+$' -AND -NOT($_ -in ("-536084480")) } { $AccessMask = [string]$ACL.FileSystemRights }
+				# -AND -NOT($_ -in ("-1610612736"))
+				default { $AccessMask = "SpecialPermissions" }
+			}
+			$IdentityReference = $ACL.Identityreference.Value
+			$AccessType = $AccessMask
+			$AccessControlType = $ACL.AccessControlType
+
+			[pscustomobject]@{					
+				Path            = $Path
+				SharePermission = $IdentityReference
+				PermissionType  = $AccessType
+				Control         = $AccessControlType
+			}
+		}
+	}
+	else {
+		[pscustomobject]@{				
+			Path            = $Path				
+			SharePermission = "No access"
+			PermissionType  = "No access"
+			Control         = "No access"
+		}
+	}
+	$ACLs = ""
+}
