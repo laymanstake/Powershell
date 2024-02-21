@@ -19,14 +19,14 @@ throw "The script is not supposed to run directly"
 
 
 function Simple-function (
-[string]$parameter1, [Parameter(ValueFromPipeline = $true, 
-mandatory = $true, Helpmessage="It should be from given values None,Info,Warning,Error")][ValidateSet('None','Info','Warning','Error')]$parameter2) {
-
+    [string]$parameter1, 
+    [Parameter(ValueFromPipeline = $true, mandatory = $true, Helpmessage="It should be from given values None,Info,Warning,Error")][ValidateSet('None','Info','Warning','Error')]$parameter2) {
+    
     Write-host "Parameter1 value is $parameter1"
     Write-host "Parameter2 value is $parameter2"
 }
 
-function Simple-function ($parameter1, $parameter2) {
+function Simple-function ([string]$parameter1, [int]$parameter2) {
 
     Write-host "Parameter1 value is $parameter1"
     Write-host "Parameter2 value is $parameter2"
@@ -41,6 +41,9 @@ Function New-Function {
 	[Parameter(ValueFromPipeline = $false, mandatory = $true)][ValidateScript({$_ -gt 0 –AND $_ -lt 10000})][int]$Number,	
 	$RandomParameter
 )
+    Write-Verbose "This is sample verbose message"
+    Write-Debug "This is sample debug message"
+    Write-host "Sample normal message"
 }
 
 #endregion
@@ -83,7 +86,9 @@ Get-StoredCredential -target O365
 # Create the credential file with custom encryption key, only password encrypted
 $PasswordFile = "c:\temp\mypassword.txt"
 $KeyFile = "c:\temp\my.keyfile"
+
 $key = 0..255 | Get-Random -Count 32 | ForEach-Object { [byte]$_ } | out-file $KeyFile # 32 means AES encryption # Generate a random key and save it to a file
+
 $User = "MyUserName"
 $Password = Read-Host "Please enter your password" -AsSecureString
 $Password | ConvertFrom-SecureString -Key $Key | Out-File $PasswordFile
