@@ -26,6 +26,12 @@ mandatory = $true, Helpmessage="It should be from given values None,Info,Warning
     Write-host "Parameter2 value is $parameter2"
 }
 
+function Simple-function ($parameter1, $parameter2) {
+
+    Write-host "Parameter1 value is $parameter1"
+    Write-host "Parameter2 value is $parameter2"
+}
+
 Function New-Function {
 [CmdletBinding(SupportsShouldProcess)]
     Param(  
