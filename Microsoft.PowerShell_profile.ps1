@@ -242,12 +242,13 @@ Function Run-EncryptedScript {
 	)
 
 	[string]$scriptCode = Get-Content $ScriptPath
+	$scriptCode
 
 	$decryptedCode = $scriptCode | ConvertTo-SecureString
 	$Code = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($decryptedCode))
 
 	if ($ShowCodeOnly) {
-		$Code -split "\t"
+		$Code
 	}
  else {
 		Invoke-Expression $Code
@@ -281,7 +282,7 @@ Function Export-EncryptedScript {
 		[parameter(Mandatory = $true, ValueFromPipeline = $True, helpmessage = "It should be valid path")][string]$ExportPath
 	)
 
-	[string]$Code = Get-content -Path $ScriptPath
+	[string]$Code = Get-content -Path $ScriptPath -Raw
 	$SecureCode = ConvertTo-SecureString $Code -AsPlainText -Force
 	$null = ConvertFrom-SecureString -SecureString $SecureCode | Out-File -FilePath $ExportPath
 
