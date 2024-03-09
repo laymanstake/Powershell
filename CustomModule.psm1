@@ -1,3 +1,126 @@
+<#
+
+@;:::::,:::;;;oooooooxxxxooooo;oooooooo;;;;;;;;;;;;:;;;;;:o@
+;;;;::::::::;;;;oooooo;:::,,,:,,,;oo;;;;;;;;;;;;:::::;;;;::;
+;;;;;:::::::::;;;;;;:,.,,,,,::,,.,,:;;;;;:::::::::::;;;;;;;;
+;;;;:::,,,::::::::,,,,,,.,,,,,,,...,,,::::::::;;;;;;;;;oo;;o
+o;;;;::::,,,,,,,,,.,,,,,,,,,,.,:,.,,,,,,,:;;;;;;oooooooooooo
+oo;;;;;;::::,,,,,.,,,,,,,,:,,.,,,.,,,,.,,,;oooooooooooooxxxx
+ooooooooo;;;:,,,...,::,,:::,,,,,...,,,,,,,;ooxxxxxxxxxxxxxxx
+oooooooooooo;:,,..,,:::,,:,,,,.....,,,,:.,,:oxxxxxxxxxxxxxxx
+xxxxxxxxxxooo:,,.,:;::,,,,,,,,,,..,,,,,,,,,,:xxxxxxxxxxxxxxx
+xxxxxxxxxxxo;:,..,::,,,.,.....,,.,,,....,,,,,;xxxxxxxoxoxxxx
+xxxxxxxxxxxo:,.,,::,....................,,.,,:oxxxxxoooooooo
+xxxxxxxxxx;:,,,,,,..... . .............,..,.,:;xxxxxoooooxoo
+xxxxxxxxo:,,,,,::,...... ...........,..,,,..,::oxxxxoooooooo
+xxxxxxxx;,,,:,,:,..........................,,,,;oooooooooooo
+xxxxxxxo,:,:,,,,.....,,,:::,,:,,,....,......,,,:oooooooooooo
+xxxxxxx:,,,:,,,,...,,::;;;;;;;;;:::,,,,,,,,.,,::;;;;oooooooo
+xxxxxx;,,,::,,,,,,::;;oooooooooo;;;::,,,,,..,,::,:;;;;oo;;;o
+xxxxxx::,,::,,,,::;;oooooooxxooooo;;::,,,,,,,,,::,::;;;;;;;;
+xxxxxx:,,:,:,,,:;;ooooooxxxxxxxxooo;;::,,,,.,,,,,,,::;;;;;:;
+xxxxxo,,,,,,.,:;;oooooxxxxxxxxxxxooo;;:::,,,,,,,,,,,:;;;;:::
+xoxxx;:,,,...,:;;oooooxxxxxxxxxxxxooo;;:::,,,,,,,,,,:;;;;:,,
+oooooo,,,.,..,:;oooooxxxxxxxxxxxxxxooo;;;::,...,,,,,:;;;::,,
+oooooo:,.....,:oooooxxxxxxxxxxxxxxxxxo;;;;:,..,,,,,:;;;;::,,
+oooooo;,....,,;ooooxxxxxxxxxxx%%%xxxxxoo;;;:,.,,::::;;o;::,,
+oooo;;;,,...,:;oooxxxxxxx%%%%%xxxxxxxxoooo;;;,,::::;;oo;:,,,
+;;;;;;::,.,.,;oooxxxxxxxxxxxxxxoooo;;;::;;;;o:,:;::;;oo;;,,,
+;;:::::,,.,.,;ooo;;o;ooooxxxxoo::,,,.,,,::;ooo,::::;;oo;:,,,
+::::::,,,,..;oo:,,,,,,,::;oooo;:,..,:;;;;:;ooo:;;:::;oo;:,,,
+:::::,,,,,.,;;::::::,,,,::;oo;;:::,::::::;;;oo:;;:::;;o;:,,,
+::::::::::,:;;::;;;;:::::;oxxx;::,,,,,,,::;ooo;:;;:;;;;;:,,,
+::::::::::,:;;;;:::,,,,,:;ox%xo::,;o,,:;::;ooo;:;;:;;;;;;:,,
+::::::::::::;;;;:,;,,,:,:;ox%xo;:::;:;;;;oooooo:;;:;;;oo;;;;
+;;;;;;;;;;;:oo;:::o;,::::oox%%xxo;;;;;;oxxxxxoo:::::;;oooooo
+;;;;;;;;;;;:ooo;;;;;;;;;oxxx%%xxxxooxxxxxxxxxoo:::::;ooooxxx
+;;;;;;;;;o;:oooooooooooxxxxx%%xxx%%xxx%%%%xxxoo:::::;;ooxxox
+;;;;;;;;;o;:;oooxxxxxxxxxxxx%%xxxx%%%%%%%%xxxoo;::::;;oooooo
+;;;;;;;;oo;:;oxxxxxxx%%xxxxx%%%xxx%%%%%%%%xxxoo;,:::;;;;;;;;
+;;;;;;;;ooo:;oxxxx%x%%%xoxx%%%%xxxx%%%%%%%xxxoo;,:::;;;;;::,
+;;;;;;;oooo:;oxxxx%%%%xoxxx%%%xxxxxx%%%%%%xxxxo;,:::;;;;;:,,
+;;;;;;ooooo;;oxxxxx%%xxxxxxxxxxxxxxxx%%%%xxxxxo;,::::;;;::,,
+;;;;;;ooooo;;oxxxxxxxxxo;;ooooo;:oxxxxxxxxxxxxo::::::;;;:,,,
+;;;;;;;;oo;;;ooxxxxxxxxo;:;;;;:;;ox%%xxxxxxxxoo::::::;;;:,,,
+:;;;;;;;;;;;;oooxxxxxxxo;;;::::;;oxxxxxxxxxxxoo::::::;;;:,,,
+:;;;;;;;;;;;;;ooxxxxxxoo;;;;;;ooooxxxxxxxxxxooo;;;:::;;::,,,
+;;ooo;;;;;;;;;ooooooooo;;;o;;oxxxxooooooxxooooooo;;::;;::,,,
+ooxxxooooooo;;ooooooo;;oooooooo;;oooooooooooooxoo;;:;;;::,,,
+xxxxxxxxxxooo;oooooo;;;;;:::;::::::::;oooooooo;oo;;:;;;::,,,
+x%%%%xxxxxooo;;ooooo;:,,::::;;;o;;::::;ooooo;o,:;;;;;;;::,,,
+%%%%%xxxxxooo;;ooooo;;;:;;ooxxxoo;;ooo;oooo;;;,.,:;;;;;:::,,
+%%%%%xxxooooo;;oooooooo;;;;;ooo;;;;oooo;;;;;;;,..,:;;;;;;:::
+%%%%%xxooooo;;;;;;o;ooooo;;;:::;;;ooooo;;;;;;o,...,:ooo;;;;;
+x%%%xxooooo;;;;:;;;;ooooo;;:::::;oooooo;;;:;;o:...,,;oo;;;;;
+xxxxxxooooo;;;:::;;;;oooooo;;;;ooxxxooo;;::;oo:...,,,:;;;;;;
+xxxxxxoooooo;;::.,:;;;oooooooooxxxxxoo;::::ooo,...,,,,,::::;
+xxxxxxxooooo;;:,...:;;;oooooooooxxxoo;::::;oo;....,,,.,,,,,:
+xxxxxxxoooooo;,.....::;;oooooooooooo;;:::;ooo:...,,.,,,,...,
+xxxxxxooooooo;....  ;::;;;;;;;ooooo;::::;ooo;,.......,,,....
+oxxxxooooooo:,...  .:;::;;;;;;;;;;:::::;;ooo:....,...,,,,...
+oooooooooo:,...... ,:;o;::::::,::::::;;;;oo;,...,....,,,,,..
+ooooooo;,.......  .:;;;o;:::::::::::;;;;oo;:........,,,,,,..
+xxooo:,...........,;;;;;;;;;::::::;;;;;;;o;,.......,,,,,,,..
+xxo:,.............:;;;;oo;;;;;;:;;;;;;;;oo,.........,..,,,..
+o:,...............:;;;;;oooo;;;;;;;;;;;oo:.......,,,,.,.....
+,....,............:;;;;;ooooooo;;;;;;;oo:.......,,,,,,,.....
+,.,,,,............:;;;;;oooooo;;;;;o;oo,.....,..,,,,.,. ....
+,,,,,.............:;;oooooooooooooooo;.......,.,,,.,........
+,,,,,.............,;;ooooooooooooooo;.....,..,.,,...........
+,,,,,..............;ooooooooooooooo;............  ..........
+,,,,,,,............:ooxxxoooxxxxxo;.......,.................
+,,,,,,,,...........,ooxxxxxxxxxxxo,.......,,................
+
+#>
+
+function Convert-ImageToAsciiArt {  
+	<#
+  .SYNOPSIS
+     Function to convert an image to ascii art.
+     
+  .DESCRIPTION
+     The function Convert-ImageToAsciiArt takes an image file path and converts the image to ASCII art.
+     The ASCII art is created by replacing each pixel in the image with an ASCII character based on the brightness of the pixel.
+     The ASCII characters used are specified in the $chars variable, and their brightness is determined by the grayscale value of the original pixel.
+     
+  .EXAMPLE
+      Convert-ImageToAsciiArt -ImagePath "C:\path\to\image.jpg"
+      
+  .EXAMPLE
+      Convert-ImageToAsciiArt -ImagePath "C:\path\to\image.jpg" -MaxWidth 80 -Contrast 75
+#>
+	param (
+		[Parameter(Mandatory = $true)]
+		[ValidateScript({ Test-Path $_ -PathType 'Leaf' })]
+		[string]$ImagePath,
+        
+		[Parameter()]
+		[int]$MaxWidth = 120
+	)
+    
+	# Load the image and resize it to a maximum width of $MaxWidth.
+	$image = [System.Drawing.Image]::FromFile($ImagePath)
+	$ratio = $MaxWidth / $image.Width
+	$newWidth = [int]($image.Width * $ratio)
+	$newHeight = [int]($image.Height * $ratio)
+	$resizedImage = $image.GetThumbnailImage($newWidth, $newHeight, $null, [System.IntPtr]::Zero)
+    
+	# Create a list of ASCII characters to use for the output.
+	$chars = @(' ', '.', ',', ':', ';', 'o', 'x', '%', '#', '@')
+    
+	# Convert each pixel in the image to an ASCII character based on its brightness.
+	$asciiChars = for ($y = 0; $y -lt $resizedImage.Height; $y++) {
+		$line = for ($x = 0; $x -lt $resizedImage.Width; $x++) {
+			$pixel = $resizedImage.GetPixel($x, $y)
+			$brightness = ([int]$pixel.R * 0.299 + [int]$pixel.G * 0.587 + [int]$pixel.B * 0.114) / 255
+			$charIndex = [int]($brightness * ($chars.Count - 1))
+			$chars[$charIndex]
+		}
+		[string]::Join('', $line)
+	}
+    
+	Write-Output $asciiChars
+}
 
 function Read-Text {
 	<#
@@ -32,8 +155,10 @@ function Read-Text {
 		$ATAVoiceEngine.Speak($text)
 		$Text
 	}
-}
 
+	#$speaker = new-object -ComObject sapi.spvoice
+	#$speaker.speak($Text)
+}
 
 function Get-PSTaskManager {
 	<#
@@ -83,6 +208,80 @@ function Get-DiskSpace {
 	ForEach ($Server in $Servers) {
 		Get-WmiObject -Class Win32_logicaldisk -computer $Server | Select-object PSComputername, VolumeName, DeviceID, @{Name = "SizeGB"; Expression = { $_.Size / 1GB -as [int] } }, @{Name = "UsedGB"; Expression = { "{0:N2}" -f (($_.Size - $_.Freespace) / 1GB) } }, @{Name = "FreeGB"; Expression = { "{0:N2}" -f ($_.FreeSpace / 1GB) } }
 	}
+}
+
+Function Run-EncryptedScript {
+	<#
+	.SYNOPSIS
+	This function run an existing encrypted script
+	.DESCRIPTION
+	This is just for educational purpose. This function run an existing encrypted script
+	.PARAMETER ScriptPath
+	Specify path for the script to be encrypted.
+	.INPUTS
+	System.String. Need a correct script path
+	.OUTPUTS
+	None
+	.EXAMPLE
+	PS> Run-EncryptedScript -ScriptPath C:\temp\mypublicip_Encrypted.ps1
+	.EXAMPLE
+	PS> Run-EncryptedScript -ScriptPath C:\temp\mypublicip_Encrypted.ps1 -ShowCodeOnly
+	.LINK
+	https://nitishkumar.net/2022/10/24/one-stop-bash-script-to-setup-prometheus-grafana-and-windows-exporter-on-centos-linux-machine/
+	#>
+
+
+	[cmdletbinding()]
+	param (
+		[parameter(Mandatory = $true, ValueFromPipeline = $True, helpmessage = "It should be valid path")][validatescript({ Test-Path $_ })][string]$ScriptPath,
+		[parameter(Mandatory = $false, ValueFromPipeline = $True)][switch]$ShowCodeOnly
+
+	)
+
+	[string]$scriptCode = Get-Content $ScriptPath
+
+	$decryptedCode = $scriptCode | ConvertTo-SecureString
+	$Code = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($decryptedCode))
+
+	if ($ShowCodeOnly) {
+		$Code -split "\t"
+	}
+ else {
+		Invoke-Expression $Code
+	}
+}
+
+Function Export-EncryptedScript {
+	<#
+	.SYNOPSIS
+	This function encrypts an existing script to encrypted string text file
+	.DESCRIPTION
+	This is just for educational purpose. This function encrypts an existing script to encrypted string text file
+	.PARAMETER ScriptPath
+	Specify path for the script to be encrypted.
+	.PARAMETER ExportPath
+	Specify path for the exported encrypted script.
+	.INPUTS
+	System.String. Need a correct script path
+	.OUTPUTS
+	System.String. Need a correct script path
+	.EXAMPLE
+	PS> Export-EncryptedScript -ScriptPath C:\temp\mypublicip.ps1 -ExportPath C:\temp\mypublicip_Encrypted.ps1
+	.LINK
+	https://nitishkumar.net/2022/10/24/one-stop-bash-script-to-setup-prometheus-grafana-and-windows-exporter-on-centos-linux-machine/
+	#>
+
+
+	[cmdletbinding()]
+	param (
+		[parameter(Mandatory = $true, ValueFromPipeline = $True, helpmessage = "It should be valid path")][validatescript({ Test-Path $_ })][string]$ScriptPath,
+		[parameter(Mandatory = $true, ValueFromPipeline = $True, helpmessage = "It should be valid path")][string]$ExportPath
+	)
+
+	[string]$Code = Get-content -Path $ScriptPath
+	$SecureCode = ConvertTo-SecureString $Code -AsPlainText -Force
+	$null = ConvertFrom-SecureString -SecureString $SecureCode | Out-File -FilePath $ExportPath
+
 }
 
 
@@ -386,15 +585,195 @@ function Get-Temperature {
 	((invoke-RestMethod -Method Get -Uri "https://api.open-meteo.com/v1/forecast?latitude=$($PublicIP.lat)&longitude=$($PublicIP.lon)&current=temperature_2m") | select-Object @{l = "Temperature"; e = { "$($_.current.temperature_2m)$($_.current_units.temperature_2m)" } }).Temperature
 }
 
-function prompt {
-	set-executionPolicy Unrestricted -Scope CurrentUser
-	set-PSReadLineOption -Colors @{ InlinePrediction = "$([char]0x1b)[96m" }
+Function Get-ShareDetail {
+	<#
+	.SYNOPSIS
+		This gets the share details for the given server
+	.DESCRIPTION
+		This is for educational purpose. This gets the share details for the given server	
+	.LINK
+		https://github.com/laymanstake
+	.EXAMPLE
+		Get-ShareDetail -Server Server1
+	#>	
 
-	
+	[CmdletBinding()]
+	Param (
+		# File server name
+		[Parameter(Mandatory)][String]$Server		
+	)
 
-	Write-Host "$((Get-Date).ToString("dd/MM/yy")) | $($pwd.path):" -foregroundcolor BLACK -nonewline -backgroundcolor CYAN
-	$a = Get-History -Count 1
-	Write-host " $([math]::Round(($a.EndExecutionTime - $a.StartExecutionTime).TotalSeconds, 2))s " -ForeGroundColor GREEN -nonewline
+	$Shares = Get-CIMInstance -class Win32_Share -Computername $Server | Select-Object Name, Path, @{l = "SharePath"; e = { "\\$server\$($_.Name)" } }, Status
+
+	$SharePermissions = ForEach ($Share in $Shares) {
+		try {
+			$ACLs = Get-ACL $Share.SharePath -ErrorAction Stop
+		}
+		catch {
+			Write-Host "Permissions denied on $($Share.SharePath)" -ForegroundColor YELLOW
+		}
+        
+		if ($ACLS) {
+			ForEach ($ACL in $ACLs.Access) {
+        
+				Switch ($ACL.FileSystemRights) {
+					2032127 { $AccessMask = "FullControl" }
+					1179785 { $AccessMask = "Read" }
+					1180063 { $AccessMask = "Read, Write" }
+					1179817 { $AccessMask = "ReadAndExecute" }
+					{ -1610612736 } { $AccessMask = "ReadAndExecuteExtended" }                        
+					1245631 { $AccessMask = "ReadAndExecute, Modify, Write" }
+					1180095 { $AccessMask = "ReadAndExecute, Write" }
+					268435456 { $AccessMask = "Write" }
+					{ $_ -notmatch '^[-]*[0-9]+$' -AND -NOT($_ -in ("-536084480")) } { $AccessMask = [string]$ACL.FileSystemRights }
+					default { $AccessMask = "SpecialPermissions" }
+				}
+				$IdentityReference = $ACL.Identityreference.Value
+				$AccessType = $AccessMask
+				$AccessControlType = $ACL.AccessControlType
+
+				[pscustomobject]@{
+					Name            = $Share.Name
+					Path            = $Share.Path
+					SharePath       = $Share.SharePath
+					Status          = $Share.Status
+					SharePermission = $IdentityReference
+					PermissionType  = $AccessType
+					Control         = $AccessControlType
+				}
+			}
+		}
+		else {
+			[pscustomobject]@{
+				Name            = $Share.Name
+				Path            = $Share.Path
+				SharePath       = $Share.SharePath
+				Status          = $Share.Status
+				SharePermission = "No access"
+				PermissionType  = "No access"
+				Control         = "No access"
+			}
+		}
+		$ACLs = ""
+	}
+	$SharePermissions
 }
 
-#Clear-Host
+Function Get-DirectReport {
+	<#
+	.SYNOPSIS
+		Function to get all direct reports under the given user recursively
+	.DESCRIPTION
+		Educational purposes only, function to get all direct reports under the given user recursively	
+	.LINK
+		https://github.com/laymanstake
+	.EXAMPLE
+		Get-DirectReport -user Ayush.Mishra
+	#>
+	
+	param (
+		# User SamAccountName required
+		[String]$user
+	)
+    
+	$Reportees = New-Object System.Collections.Generic.List[PSObject]
+
+	$userDetail = Get-aduser -identity $User -Properties DirectReports, Manager    
+	$item = $userDetail | Select-Object Name, SamAccountName, Enabled, @{l = "Manager"; e = { $_.Manager.Split(“,”).Split(“=”)[1] } }    
+	$Reportees.Add($item)
+
+	if ($userDetail.DirectReports) {
+		ForEach ($Reportee in $userDetail.DirectReports) {            
+			$DirectReportees = Get-DirectReport -user $Reportee
+            
+			foreach ($DirectReportee in $DirectReportees) {
+				$Reportees.Add($DirectReportee)
+			}
+		}
+	}    
+	$Reportees
+}
+
+Function Get-DirectReport-old {
+	param (
+		# User SamAccountName required
+		[String]$user
+	)        
+    
+	$Reportees = @()
+	$userDetail = Get-aduser -identity $User -Properties DirectReports, Manager    
+	$Reportees += $userDetail | Select-Object Name, SamAccountName, Enabled, @{l = "Manager"; e = { $_.Manager.Split(“,”).Split(“=”)[1] } }    
+
+	if ($userDetail.DirectReports) {
+		ForEach ($Reportee in $userDetail.DirectReports) {            
+			Get-DirectReport-old -user $Reportee
+		}
+	}
+	$Reportees
+}
+
+Function Get-Permission {
+	<#
+	.SYNOPSIS
+		Function to get permission on given folder in readable format
+	.DESCRIPTION
+		Educational purposes only, Function to get permission on given folder in readable format
+	.LINK
+		https://github.com/laymanstake
+	.EXAMPLE
+		Get-Permission -Path c:\windows\Sysvol
+	#>
+
+	Param (
+		[Parameter(Mandatory)][ValidateScript({ Test-Path $_ })][String]$Path
+	)
+
+	try {
+		$ACLs = Get-ACL $Path -ErrorAction Stop
+	}
+	catch {
+		Write-Host "Permissions denied on $($Path)" -ForegroundColor YELLOW
+	}
+        
+	if ($ACLS) {
+		ForEach ($ACL in $ACLs.Access) {
+
+			$IdentityReference = ""
+			$AccessType = ""
+			$AccessControlType = ""
+        
+			Switch ($ACL.FileSystemRights) {
+				2032127 { $AccessMask = "FullControl" }
+				1179785 { $AccessMask = "Read" }
+				1180063 { $AccessMask = "Read, Write" }
+				1179817 { $AccessMask = "ReadAndExecute" }
+				{ -1610612736 } { $AccessMask = "ReadAndExecuteExtended" }                        
+				1245631 { $AccessMask = "ReadAndExecute, Modify, Write" }
+				1180095 { $AccessMask = "ReadAndExecute, Write" }
+				268435456 { $AccessMask = "Write" }
+				{ $_ -notmatch '^[-]*[0-9]+$' -AND -NOT($_ -in ("-536084480")) } { $AccessMask = [string]$ACL.FileSystemRights }
+				# -AND -NOT($_ -in ("-1610612736"))
+				default { $AccessMask = "SpecialPermissions" }
+			}
+			$IdentityReference = $ACL.Identityreference.Value
+			$AccessType = $AccessMask
+			$AccessControlType = $ACL.AccessControlType
+
+			[pscustomobject]@{					
+				Path            = $Path
+				SharePermission = $IdentityReference
+				PermissionType  = $AccessType
+				Control         = $AccessControlType
+			}
+		}
+	}
+	else {
+		[pscustomobject]@{				
+			Path            = $Path				
+			SharePermission = "No access"
+			PermissionType  = "No access"
+			Control         = "No access"
+		}
+	}
+	$ACLs = ""
+}
