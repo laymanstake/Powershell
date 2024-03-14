@@ -14,7 +14,7 @@
 
 # Output formating options
 $logopath = "https://raw.githubusercontent.com/laymanstake/laymanstake/master/images/logo.png"
-$ReportPath = "$env:USERPROFILE\desktop\EntraIDReport_$(get-date -Uformat "%Y%m%d-%H%M%S").html"
+$ReportPath = "c:\temp\EntraIDReport_$(get-date -Uformat "%Y%m%d-%H%M%S").html"
 $CopyRightInfo = " @Copyright Nitish Kumar <a href='https://github.com/laymanstake'>Visit nitishkumar.net</a>"
 
 # CSS codes to format the report
@@ -64,10 +64,30 @@ $TenantBasicDetail = Get-MgOrganization | Select-Object DisplayName, CreatedDate
 
 $EnabledAuthMethods = (Get-MgPolicyAuthenticationMethodPolicy ).AuthenticationMethodConfigurations | Select-Object @{label = "AuthMethodType"; expression = { $_.Id } }, State
 
-$EnabledAuthSummary = ($EnabledAuthMethods | ConvertTo-Html -As Table  -Fragment -PreContent "<h2>Auth Methods Summary</h2>")
+$MonitoredPriviledgedRoles = ("Global Administrator","Global Reader","Security Administrator","Privileged Authentication Administrator","User Administrator")
+$ActivatedRoles = Get-MgDirectoryRole | Select-Object Id, Displayname
 
+$RoleDetail = ForEach($privilegedRole in $MonitoredPriviledgedRoles){	
+	$RoleID = ($ActivatedRoles | Where-Object {$_.DisplayName -eq $privilegedRole}).Id	
+	If($privilegedRole -in $ActivatedRoles.DisplayName){
+		$name = $privilegedRole
+		$Count = Get-MgDirectoryRoleMemberCount -DirectoryRoleId $RoleID -ConsistencyLevel eventual
+	} else {
+		$name = $privilegedRole
+		$count = "Role not activated"
+	}
+
+	[PSCustomObject]@{		
+		Name = $Name
+		Count = $Count
+	}
+}
+
+# Create HTML table elements
+$EnabledAuthSummary = ($EnabledAuthMethods | Sort-Object State -Descending | ConvertTo-Html -As Table  -Fragment -PreContent "<h2>Auth Methods Summary</h2>")
+$RoleSummary = ($RoleDetail | Sort-Object Count | ConvertTo-Html -As Table  -Fragment -PreContent "<h2>Priviledged Entra Role Summary</h2>")
 $TenantSummary = ($TenantBasicDetail | ConvertTo-Html -As List -Property DisplayName, CreatedDateTime, CountryLetterCode, Id, OnPremisesSyncEnabled, OnPremisesLastSyncDateTime, TenantType, EntraID, Domain -Fragment -PreContent "<h2>Entra Summary: $forest</h2>") -replace "`n", "<br>"
 
-$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $EnabledAuthSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
+$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $RoleSummary $EnabledAuthSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
 $ReportRaw | Out-File $ReportPath
 Invoke-item $ReportPath
