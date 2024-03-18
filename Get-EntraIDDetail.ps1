@@ -64,30 +64,38 @@ $TenantBasicDetail = Get-MgOrganization | Select-Object DisplayName, CreatedDate
 
 $EnabledAuthMethods = (Get-MgPolicyAuthenticationMethodPolicy ).AuthenticationMethodConfigurations | Select-Object @{label = "AuthMethodType"; expression = { $_.Id } }, State
 
-$MonitoredPriviledgedRoles = ("Global Administrator","Global Reader","Security Administrator","Privileged Authentication Administrator","User Administrator")
+$MonitoredPriviledgedRoles = ("Global Administrator", "Global Reader", "Security Administrator", "Privileged Authentication Administrator", "User Administrator")
 $ActivatedRoles = Get-MgDirectoryRole | Select-Object Id, Displayname
 
-$RoleDetail = ForEach($privilegedRole in $MonitoredPriviledgedRoles){	
-	$RoleID = ($ActivatedRoles | Where-Object {$_.DisplayName -eq $privilegedRole}).Id	
-	If($privilegedRole -in $ActivatedRoles.DisplayName){
+$RoleDetail = ForEach ($privilegedRole in $MonitoredPriviledgedRoles) {	
+	$RoleID = ($ActivatedRoles | Where-Object { $_.DisplayName -eq $privilegedRole }).Id	
+	If ($privilegedRole -in $ActivatedRoles.DisplayName) {
 		$name = $privilegedRole
 		$Count = Get-MgDirectoryRoleMemberCount -DirectoryRoleId $RoleID -ConsistencyLevel eventual
-	} else {
+	}
+ else {
 		$name = $privilegedRole
 		$count = "Role not activated"
 	}
 
 	[PSCustomObject]@{		
-		Name = $Name
+		Name  = $Name
 		Count = $Count
 	}
 }
 
-# Create HTML table elements
-$EnabledAuthSummary = ($EnabledAuthMethods | Sort-Object State -Descending | ConvertTo-Html -As Table  -Fragment -PreContent "<h2>Auth Methods Summary</h2>")
-$RoleSummary = ($RoleDetail | Sort-Object Count | ConvertTo-Html -As Table  -Fragment -PreContent "<h2>Priviledged Entra Role Summary</h2>")
-$TenantSummary = ($TenantBasicDetail | ConvertTo-Html -As List -Property DisplayName, CreatedDateTime, CountryLetterCode, Id, OnPremisesSyncEnabled, OnPremisesLastSyncDateTime, TenantType, EntraID, Domain -Fragment -PreContent "<h2>Entra Summary: $forest</h2>") -replace "`n", "<br>"
+# License summary 
 
-$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $RoleSummary $EnabledAuthSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
+$LicenseDetail = Get-MgSubscribedSku -all | Select-Object SkuPartNumber, SkuId, @{Name = "ActiveUnits"; Expression = { ($_.PrepaidUnits).Enabled } }, ConsumedUnits, @{Name = "AvailableUnits"; Expression = { ($_.PrepaidUnits).Enabled - $_.ConsumedUnits } }
+$CASPolicyDetail = Get-MgIdentityConditionalAccessPolicy -All | Select-Object DisplayName, State, CreatedDateTime, ModifiedDateTime
+
+# Create HTML table elements
+$EnabledAuthSummary = ($EnabledAuthMethods | Sort-Object State -Descending | ConvertTo-Html -As Table  -Fragment -PreContent "<h2>Auth Methods Summary : $($TenantBasicDetail.DisplayName)</h2>")
+$RoleSummary = ($RoleDetail | Sort-Object Count | ConvertTo-Html -As Table  -Fragment -PreContent "<h2>Priviledged Entra Role Summary: $($TenantBasicDetail.DisplayName)</h2>")
+$TenantSummary = ($TenantBasicDetail | ConvertTo-Html -As List -Property DisplayName, CreatedDateTime, CountryLetterCode, Id, OnPremisesSyncEnabled, OnPremisesLastSyncDateTime, TenantType, EntraID, Domain -Fragment -PreContent "<h2>Entra Summary: $forest</h2>") -replace "`n", "<br>"
+$LicenseSummary = $LicenseDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>License Summary: $($TenantBasicDetail.DisplayName)</h2>"
+$CASSummary = $CASPolicyDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Conditional Access Policy Summary: $($TenantBasicDetail.DisplayName)</h2>"
+
+$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $LicenseSummary $RoleSummary $EnabledAuthSummary $CASSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
 $ReportRaw | Out-File $ReportPath
 Invoke-item $ReportPath
