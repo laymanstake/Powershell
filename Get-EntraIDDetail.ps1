@@ -60,7 +60,7 @@ else {
 	$EntraLicense = "Entra ID Free"
 }
 
-$TenantBasicDetail = Get-MgOrganization | Select-Object DisplayName, CreatedDateTime, CountryLetterCode, @{l = "TenantID"; e = { $_.Id } }, OnPremisesSyncEnabled, OnPremisesLastSyncDateTime, TenantType, @{l = "EntraID"; e = { $EntraLicense } }, @{l = "Domain"; e = { (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n" } }
+$TenantBasicDetail = Get-MgOrganization | Select-Object DisplayName, CreatedDateTime, CountryLetterCode, @{l = "TenantID"; e = { $_.Id } }, OnPremisesSyncEnabled, OnPremisesLastSyncDateTime, TenantType, @{l = "EntraID"; e = { $EntraLicense } }, @{l = "Domain"; e = { (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n" } }, @{l = "SecurityDefaults"; e = { (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"] } }
 
 $EnabledAuthMethods = (Get-MgPolicyAuthenticationMethodPolicy ).AuthenticationMethodConfigurations | Select-Object @{label = "AuthMethodType"; expression = { $_.Id } }, State
 
@@ -73,7 +73,7 @@ $RoleDetail = ForEach ($privilegedRole in $MonitoredPriviledgedRoles) {
 		$name = $privilegedRole
 		$Count = Get-MgDirectoryRoleMemberCount -DirectoryRoleId $RoleID -ConsistencyLevel eventual
 	}
- else {
+	else {
 		$name = $privilegedRole
 		$count = "Role not activated"
 	}
@@ -92,7 +92,7 @@ $CASPolicyDetail = Get-MgIdentityConditionalAccessPolicy -All | Select-Object Di
 # Create HTML table elements
 $EnabledAuthSummary = ($EnabledAuthMethods | Sort-Object State -Descending | ConvertTo-Html -As Table  -Fragment -PreContent "<h2>Auth Methods Summary : $($TenantBasicDetail.DisplayName)</h2>")
 $RoleSummary = ($RoleDetail | Sort-Object Count | ConvertTo-Html -As Table  -Fragment -PreContent "<h2>Priviledged Entra Role Summary: $($TenantBasicDetail.DisplayName)</h2>")
-$TenantSummary = ($TenantBasicDetail | ConvertTo-Html -As List -Property DisplayName, CreatedDateTime, CountryLetterCode, Id, OnPremisesSyncEnabled, OnPremisesLastSyncDateTime, TenantType, EntraID, Domain -Fragment -PreContent "<h2>Entra Summary: $forest</h2>") -replace "`n", "<br>"
+$TenantSummary = ($TenantBasicDetail | ConvertTo-Html -As List -Property DisplayName, CreatedDateTime, CountryLetterCode, Id, OnPremisesSyncEnabled, OnPremisesLastSyncDateTime, TenantType, EntraID, Domain, SecurityDefaults -Fragment -PreContent "<h2>Entra Summary: $forest</h2>") -replace "`n", "<br>"
 $LicenseSummary = $LicenseDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>License Summary: $($TenantBasicDetail.DisplayName)</h2>"
 $CASSummary = $CASPolicyDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Conditional Access Policy Summary: $($TenantBasicDetail.DisplayName)</h2>"
 
