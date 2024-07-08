@@ -12,6 +12,8 @@
 	
 #>
 
+Import-Module Microsoft.Graph.Authentication
+
 # Output formating options
 $logopath = "https://raw.githubusercontent.com/laymanstake/laymanstake/master/images/logo.png"
 $ReportPath = "c:\temp\EntraIDReport_$(get-date -Uformat "%Y%m%d-%H%M%S").html"
@@ -35,6 +37,10 @@ If ($logopath) {
 	$header = $header + "<img src=$logopath alt='Company logo' width='150' height='150' align='right'>"
 }
 
+<#
+All permissions reference
+Ref: https://learn.microsoft.com/en-us/graph/permissions-reference
+#>
 
 if (Get-MgContext) {	
 	# Disconnect current connection before starting
@@ -47,8 +53,7 @@ else {
 }
 
 $ConnectionDetail = Get-MgContext | Select-Object Account, TenantId, Environment, @{l = "Scopes"; e = { $_.Scopes -join "," } }
-
-$ServicePlans = (Get-MgSubscribedSku | Where-Object { $_.ServicePlans.ProvisioningStatus -eq "Success" }).ServicePlans.ServicePlanName
+$ServicePlans = ((Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/subscribedSkus?$select=skuPartNumber,skuId,prepaidUnits,consumedUnits,servicePlans").value | Where-Object { $_.ServicePlans.ProvisioningStatus -eq "Success" }).ServicePlans.ServicePlanName
 
 If ($ServicePlans -contains "AAD_Premium_P2") {
 	$EntraLicense = "Entra ID P2"
@@ -60,12 +65,11 @@ else {
 	$EntraLicense = "Entra ID Free"
 }
 
-$TenantBasicDetail = Get-MgOrganization | Select-Object DisplayName, CreatedDateTime, CountryLetterCode, @{l = "TenantID"; e = { $_.Id } }, OnPremisesSyncEnabled, OnPremisesLastSyncDateTime, TenantType, @{l = "EntraID"; e = { $EntraLicense } }, @{l = "Domain"; e = { (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n" } }, @{l = "SecurityDefaults"; e = { (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"] } }
-
-$EnabledAuthMethods = (Get-MgPolicyAuthenticationMethodPolicy ).AuthenticationMethodConfigurations | Select-Object @{label = "AuthMethodType"; expression = { $_.Id } }, State
+$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | %{[pscustomobject]@{DisplayName=$_.displayName;createdDateTime=$_.createdDateTime;countryLetterCode=$_.countryLetterCode;TenantID=$_.Id;OnPremisesSyncEnabled=$_.OnPremisesSyncEnabled;OnPremisesLastSyncDateTime=$_.OnPremisesLastSyncDateTime;TenantType=$_.TenantType;EntraID=$EntraLicense;Domain=(($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n";SecurityDefaults=(Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"] }}
+$EnabledAuthMethods = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy").authenticationMethodConfigurations | %{[pscustomobject]@{AuthMethodType=$_.Id;State=$_.state}}
 
 $MonitoredPriviledgedRoles = ("Global Administrator", "Global Reader", "Security Administrator", "Privileged Authentication Administrator", "User Administrator")
-$ActivatedRoles = Get-MgDirectoryRole | Select-Object Id, Displayname
+$ActivatedRoles = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/directoryRoles").value | %{[pscustomobject]@{Id=$_.Id;DisplayName=$_.displayName}}
 
 $RoleDetail = ForEach ($privilegedRole in $MonitoredPriviledgedRoles) {	
 	$RoleID = ($ActivatedRoles | Where-Object { $_.DisplayName -eq $privilegedRole }).Id	
@@ -85,9 +89,8 @@ $RoleDetail = ForEach ($privilegedRole in $MonitoredPriviledgedRoles) {
 }
 
 # License summary 
-
-$LicenseDetail = Get-MgSubscribedSku -all | Select-Object SkuPartNumber, SkuId, @{Name = "ActiveUnits"; Expression = { ($_.PrepaidUnits).Enabled } }, ConsumedUnits, @{Name = "AvailableUnits"; Expression = { ($_.PrepaidUnits).Enabled - $_.ConsumedUnits } }
-$CASPolicyDetail = Get-MgIdentityConditionalAccessPolicy -All | Select-Object DisplayName, State, CreatedDateTime, ModifiedDateTime
+$LicenseDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/subscribedSkus?$select=skuPartNumber,skuId,prepaidUnits,consumedUnits,servicePlans").value | %{[pscustomobject]@{Skuid=$_.skuId;skuPartNumber=$_.skuPartNumber;activeUnits=$_.prepaidUnits["enabled"];consumedUnits=$_.consumedUnits;availableUnits=($_.prepaidUnits["enabled"]-$_.consumedUnits)}}
+$CASPolicyDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies" ).value | %{[pscustomobject]@{DisplayName=$_.displayName;State=$_.state;createdDateTime=$_.createdDateTime;modifiedDateTime=$_.modifiedDateTime}}
 
 # Create HTML table elements
 $EnabledAuthSummary = ($EnabledAuthMethods | Sort-Object State -Descending | ConvertTo-Html -As Table  -Fragment -PreContent "<h2>Auth Methods Summary : $($TenantBasicDetail.DisplayName)</h2>")
