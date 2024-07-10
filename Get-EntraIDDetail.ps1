@@ -65,11 +65,11 @@ else {
 	$EntraLicense = "Entra ID Free"
 }
 
-$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | %{[pscustomobject]@{DisplayName=$_.displayName;createdDateTime=$_.createdDateTime;countryLetterCode=$_.countryLetterCode;TenantID=$_.Id;OnPremisesSyncEnabled=$_.OnPremisesSyncEnabled;OnPremisesLastSyncDateTime=$_.OnPremisesLastSyncDateTime;TenantType=$_.TenantType;EntraID=$EntraLicense;Domain=(($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n";SecurityDefaults=(Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"] }}
-$EnabledAuthMethods = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy").authenticationMethodConfigurations | %{[pscustomobject]@{AuthMethodType=$_.Id;State=$_.state}}
+$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object{[pscustomobject]@{DisplayName=$_.displayName;createdDateTime=$_.createdDateTime;countryLetterCode=$_.countryLetterCode;TenantID=$_.Id;OnPremisesSyncEnabled=$_.OnPremisesSyncEnabled;OnPremisesLastSyncDateTime=$_.OnPremisesLastSyncDateTime;TenantType=$_.TenantType;EntraID=$EntraLicense;Domain=(($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n";SecurityDefaults=(Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"] }}
+$EnabledAuthMethods = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy").authenticationMethodConfigurations | ForEach-Object{[pscustomobject]@{AuthMethodType=$_.Id;State=$_.state}}
 
 $MonitoredPriviledgedRoles = ("Global Administrator", "Global Reader", "Security Administrator", "Privileged Authentication Administrator", "User Administrator")
-$ActivatedRoles = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/directoryRoles").value | %{[pscustomobject]@{Id=$_.Id;DisplayName=$_.displayName}}
+$ActivatedRoles = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/directoryRoles").value | ForEach-Object{[pscustomobject]@{Id=$_.Id;DisplayName=$_.displayName}}
 
 $RoleDetail = ForEach ($privilegedRole in $MonitoredPriviledgedRoles) {	
 	$RoleID = ($ActivatedRoles | Where-Object { $_.DisplayName -eq $privilegedRole }).Id	
@@ -88,9 +88,17 @@ $RoleDetail = ForEach ($privilegedRole in $MonitoredPriviledgedRoles) {
 	}
 }
 
+# On-Premise configuration
+$OnPremConfigDetails = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/directory/onPremisesSynchronization").value.features | ForEach-Object{[pscustomobject]@{PasswordHashSync=$_.passwordSyncEnabled;passwordWritebackEnabled=$_.passwordWritebackEnabled;cloudPasswordPolicyForPasswordSyncedUsersEnabled=$_.cloudPasswordPolicyForPasswordSyncedUsersEnabled;userWritebackEnabled=$_.userWritebackEnabled;groupWriteBackEnabled=$_.groupWriteBackEnabled;deviceWritebackEnabled=$_.deviceWritebackEnabled;unifiedGroupWritebackEnabled=$_.unifiedGroupWritebackEnabled;directoryExtensionsEnabled=$_.directoryExtensionsEnabled;synchronizeUpnForManagedUsersEnabled=$_.synchronizeUpnForManagedUsersEnabled}}
+
+# Pass through authentication details
+$PTAAgentDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/beta/onPremisesPublishingProfiles/authentication/agentGroups?`$expand=agents").value.Agents | ForEach-Object{[PSCustomObject]@{machinename = $_.machinename;externalIp=$_.externalIp;status=$_.status;supportedPublishingTypes=$_.supportedPublishingTypes -join ","}}
+$PTAEnabled = ($PTAAgentDetail |Where-Object{$_.Status -eq "active"}).machinename.count -ge 1
+$PHSEnabled = $OnPremConfigDetails.PasswordHashSync
+
 # License summary 
-$LicenseDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/subscribedSkus?$select=skuPartNumber,skuId,prepaidUnits,consumedUnits,servicePlans").value | %{[pscustomobject]@{Skuid=$_.skuId;skuPartNumber=$_.skuPartNumber;activeUnits=$_.prepaidUnits["enabled"];consumedUnits=$_.consumedUnits;availableUnits=($_.prepaidUnits["enabled"]-$_.consumedUnits)}}
-$CASPolicyDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies" ).value | %{[pscustomobject]@{DisplayName=$_.displayName;State=$_.state;createdDateTime=$_.createdDateTime;modifiedDateTime=$_.modifiedDateTime}}
+$LicenseDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/subscribedSkus?$select=skuPartNumber,skuId,prepaidUnits,consumedUnits,servicePlans").value | ForEach-Object{[pscustomobject]@{Skuid=$_.skuId;skuPartNumber=$_.skuPartNumber;activeUnits=$_.prepaidUnits["enabled"];consumedUnits=$_.consumedUnits;availableUnits=($_.prepaidUnits["enabled"]-$_.consumedUnits)}}
+$CASPolicyDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies" ).value | ForEach-Object{[pscustomobject]@{DisplayName=$_.displayName;State=$_.state;createdDateTime=$_.createdDateTime;modifiedDateTime=$_.modifiedDateTime}}
 
 # Create HTML table elements
 $EnabledAuthSummary = ($EnabledAuthMethods | Sort-Object State -Descending | ConvertTo-Html -As Table  -Fragment -PreContent "<h2>Auth Methods Summary : $($TenantBasicDetail.DisplayName)</h2>")
