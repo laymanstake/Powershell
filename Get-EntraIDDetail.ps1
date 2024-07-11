@@ -78,7 +78,16 @@ else {
 	$EntraLicense = "Entra ID Free"
 }
 
-$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; createdDateTime = $_.createdDateTime; countryLetterCode = $_.countryLetterCode; TenantID = $_.Id; OnPremisesSyncEnabled = $_.OnPremisesSyncEnabled; OnPremisesLastSyncDateTime = $_.OnPremisesLastSyncDateTime; TenantType = $_.TenantType; EntraID = $EntraLicense; Domain = (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n"; SecurityDefaults = (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"] } }
+# On-Premise configuration
+$OnPremConfigDetails = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/directory/onPremisesSynchronization").value.features | ForEach-Object { [pscustomobject]@{PasswordHashSync = $_.passwordSyncEnabled; passwordWritebackEnabled = $_.passwordWritebackEnabled; cloudPasswordPolicyForPasswordSyncedUsersEnabled = $_.cloudPasswordPolicyForPasswordSyncedUsersEnabled; userWritebackEnabled = $_.userWritebackEnabled; groupWriteBackEnabled = $_.groupWriteBackEnabled; deviceWritebackEnabled = $_.deviceWritebackEnabled; unifiedGroupWritebackEnabled = $_.unifiedGroupWritebackEnabled; directoryExtensionsEnabled = $_.directoryExtensionsEnabled; synchronizeUpnForManagedUsersEnabled = $_.synchronizeUpnForManagedUsersEnabled } }
+
+# Pass through authentication details
+$PTAAgentDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/beta/onPremisesPublishingProfiles/authentication/agentGroups?`$expand=agents").value.Agents | ForEach-Object { [PSCustomObject]@{machinename = $_.machinename; externalIp = $_.externalIp; status = $_.status; supportedPublishingTypes = $_.supportedPublishingTypes -join "," } }
+$PTAEnabled = $PTAAgentDetail.machinename.count -ge 1
+$PHSEnabled = $OnPremConfigDetails.PasswordHashSync
+
+
+$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; createdDateTime = $_.createdDateTime; countryLetterCode = $_.countryLetterCode; TenantID = $_.Id; OnPremisesSyncEnabled = $_.OnPremisesSyncEnabled; OnPremisesLastSyncDateTime = $_.OnPremisesLastSyncDateTime; TenantType = $_.TenantType; EntraID = $EntraLicense; Domain = (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n"; SecurityDefaults = (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"] ; PTAEnbled = $PTAEnabled; PHSEnabled = $PHSEnabled } }
 $EnabledAuthMethods = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy").authenticationMethodConfigurations | ForEach-Object { [pscustomobject]@{AuthMethodType = $_.Id; State = $_.state } }
 
 $MonitoredPriviledgedRoles = ("Global Administrator", "Global Reader", "Security Administrator", "Privileged Authentication Administrator", "User Administrator")
@@ -100,14 +109,6 @@ $RoleDetail = ForEach ($privilegedRole in $MonitoredPriviledgedRoles) {
 		Count = $Count
 	}
 }
-
-# On-Premise configuration
-$OnPremConfigDetails = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/directory/onPremisesSynchronization").value.features | ForEach-Object { [pscustomobject]@{PasswordHashSync = $_.passwordSyncEnabled; passwordWritebackEnabled = $_.passwordWritebackEnabled; cloudPasswordPolicyForPasswordSyncedUsersEnabled = $_.cloudPasswordPolicyForPasswordSyncedUsersEnabled; userWritebackEnabled = $_.userWritebackEnabled; groupWriteBackEnabled = $_.groupWriteBackEnabled; deviceWritebackEnabled = $_.deviceWritebackEnabled; unifiedGroupWritebackEnabled = $_.unifiedGroupWritebackEnabled; directoryExtensionsEnabled = $_.directoryExtensionsEnabled; synchronizeUpnForManagedUsersEnabled = $_.synchronizeUpnForManagedUsersEnabled } }
-
-# Pass through authentication details
-$PTAAgentDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/beta/onPremisesPublishingProfiles/authentication/agentGroups?`$expand=agents").value.Agents | ForEach-Object { [PSCustomObject]@{machinename = $_.machinename; externalIp = $_.externalIp; status = $_.status; supportedPublishingTypes = $_.supportedPublishingTypes -join "," } }
-$PTAEnabled = ($PTAAgentDetail | Where-Object { $_.Status -eq "active" }).machinename.count -ge 1
-$PHSEnabled = $OnPremConfigDetails.PasswordHashSync
 
 # License summary 
 $LicenseDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/subscribedSkus?$select=skuPartNumber,skuId,prepaidUnits,consumedUnits,servicePlans").value | ForEach-Object { [pscustomobject]@{Skuid = $_.skuId; skuPartNumber = $_.skuPartNumber; activeUnits = $_.prepaidUnits["enabled"]; consumedUnits = $_.consumedUnits; availableUnits = ($_.prepaidUnits["enabled"] - $_.consumedUnits) } }
@@ -141,7 +142,7 @@ if ($scores) {
 # Create HTML table elements
 $EnabledAuthSummary = ($EnabledAuthMethods | Sort-Object State -Descending | ConvertTo-Html -As Table  -Fragment -PreContent "<h2>Auth Methods Summary : $($TenantBasicDetail.DisplayName)</h2>")
 $RoleSummary = ($RoleDetail | Sort-Object Count | ConvertTo-Html -As Table  -Fragment -PreContent "<h2>Priviledged Entra Role Summary: $($TenantBasicDetail.DisplayName)</h2>")
-$TenantSummary = ($TenantBasicDetail | ConvertTo-Html -As List -Property DisplayName, CreatedDateTime, CountryLetterCode, Id, OnPremisesSyncEnabled, OnPremisesLastSyncDateTime, TenantType, EntraID, Domain, SecurityDefaults -Fragment -PreContent "<h2>Entra Summary: $forest</h2>") -replace "`n", "<br>"
+$TenantSummary = ($TenantBasicDetail | ConvertTo-Html -As List -Property DisplayName, CreatedDateTime, CountryLetterCode, Id, OnPremisesSyncEnabled, OnPremisesLastSyncDateTime, TenantType, EntraID, Domain, SecurityDefaults, PHSEnabled, PTAEnbled -Fragment -PreContent "<h2>Entra Summary: $forest</h2>") -replace "`n", "<br>"
 $LicenseSummary = $LicenseDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>License Summary: $($TenantBasicDetail.DisplayName)</h2>"
 $CASSummary = $CASPolicyDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Conditional Access Policy Summary: $($TenantBasicDetail.DisplayName)</h2>"
 $SecureScoreReportSummary = $SecureScoreReport | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Identity - Secure Scores Summary: $($TenantBasicDetail.DisplayName)</h2>"
