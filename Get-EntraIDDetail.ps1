@@ -123,7 +123,7 @@ $ActivePIMAssignments = (invoke-mggraphRequest -Uri "https://graph.microsoft.com
 $ElligiblePIMAssignments = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/roleManagement/directory/roleEligibilitySchedules?`$expand=principal").value | ForEach-Object { $roledef = $_.RoleDefinitionId; [pscustomobject]@{RoleName = ($Roles | Where-Object { $_.id -eq $roledef }).displayName; PrincipalName = $_.Principal.displayName; PrincipalType = ($_.Principal."@odata.type").replace("`#microsoft.graph.", ""); state = $_.assignmenttype; membership = $_.memberType; StartTime = $_.scheduleInfo.StartDateTime; EndTime = $_.scheduleInfo.expiration.enddatetime; type = $_.scheduleInfo.expiration.type; directoryScopeId = $_.directoryScopeId } } 
 $PIMRoles = $ActivePIMAssignments + $ElligiblePIMAssignments
 
-$Accessreviews = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/identityGovernance/accessReviews/definitions").value
+$Accessreviews = (invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/identityGovernance/accessReviews/definitions").value | ForEach-Object { [pscustomobject]@{AccessReviewName = $_.displayName; status = $_.status; scope = if ($_.instanceEnumerationScope.query) { (invoke-mggraphrequest -uri $_.instanceEnumerationScope.query).displayName -join "," } else { (Invoke-MgGraphRequest -uri $_.scope.resourceScopes.query).DisplayName -join "," }; createdDateTime = $_.createdDateTime; lastModifiedDateTime = $_.lastModifiedDateTime; descriptionForReviewers = $_.descriptionForReviewers; descriptionForAdmins = $_.descriptionForAdmins } }
 
 # License summary 
 $LicenseDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/subscribedSkus?$select=skuPartNumber,skuId,prepaidUnits,consumedUnits,servicePlans").value | ForEach-Object { [pscustomobject]@{Skuid = $_.skuId; skuPartNumber = $_.skuPartNumber; activeUnits = $_.prepaidUnits["enabled"]; consumedUnits = $_.consumedUnits; availableUnits = ($_.prepaidUnits["enabled"] - $_.consumedUnits) } }
@@ -164,8 +164,6 @@ if ($PTAEnabled) {
 	$PTAAgentSummary = $PTAAgentDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Pass through agents Summary: $($TenantBasicDetail.DisplayName)</h2>"
 }
 
-
-
 If ($RBACRoles) {
 	$RBACRolesSummary = ($RBACRoles | ConvertTo-Html -As Table -Fragment -PreContent "<h2>RBAC Roles Summary: $($TenantBasicDetail.DisplayName)</h2>") -replace "`n", "<br>"
 }
@@ -174,10 +172,14 @@ If ($PIMRoles) {
 	$PIMRolesSummary = ($PIMRoles | Sort-Object RoleName, PrincipalType, type | ConvertTo-Html -As Table -Fragment -PreContent "<h2>PIM Roles Summary: $($TenantBasicDetail.DisplayName)</h2>") -replace "`n", "<br>"
 }
 
+if ($Accessreviews) {
+	$AccessreviewSummary = ($Accessreviews | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Access Review Summary: $($TenantBasicDetail.DisplayName)</h2>") -replace "`n", "<br>"
+}
+
 $LicenseSummary = $LicenseDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>License Summary: $($TenantBasicDetail.DisplayName)</h2>"
 $CASSummary = $CASPolicyDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Conditional Access Policy Summary: $($TenantBasicDetail.DisplayName)</h2>"
 $SecureScoreReportSummary = $SecureScoreReport | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Identity - Secure Scores Summary: $($TenantBasicDetail.DisplayName)</h2>"
-$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $PTAAgentSummary $LicenseSummary $RoleSummary $RBACRolesSummary $PIMRolesSummary $EnabledAuthSummary $CASSummary $SecureScoreReportSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
+$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $PTAAgentSummary $LicenseSummary $RoleSummary $RBACRolesSummary $PIMRolesSummary $AccessreviewSummary $EnabledAuthSummary $CASSummary $SecureScoreReportSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
 
 # To preseve HTMLformatting in description
 $ReportRaw = [System.Web.HttpUtility]::HtmlDecode($ReportRaw)
