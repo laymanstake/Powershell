@@ -169,7 +169,7 @@ $PHSEnabled = $OnPremConfigDetails.PasswordHashSync
 if ($EntraLicense -ne "Entra ID Free") {
 	# Password protection details
 	$PasswordProtectionDetails = [PSCustomObject]@{}
-	((Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/settings").value | Where-Object { $_.displayName -eq "Password Rule Settings" }).values | ForEach-Object { $PasswordProtectionDetails | Add-Member -NotePropertyName $_.Name -NotePropertyValue $_.value }
+	((Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/groupSettings").value | Where-Object { $_.displayName -eq "Password Rule Settings" }).values | ForEach-Object { $PasswordProtectionDetails | Add-Member -NotePropertyName $_.Name -NotePropertyValue $_.value }
 }
 
 # Get app ID for Entra ID Connected registered app
