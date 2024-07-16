@@ -12,6 +12,62 @@
 	
 #>
 
+# This function creates log entries for the major steps in the script.
+function Write-Log {
+	[CmdletBinding()]
+	Param(
+		[Parameter(ValueFromPipeline = $true, mandatory = $true)]$logtext,
+		[Parameter(ValueFromPipeline = $true, mandatory = $true)]$logpath
+	)
+
+	$Stamp = (Get-Date).toString("yyyy/MM/dd HH:mm:ss")
+	$LogMessage = "$Stamp : $logtext"
+    
+	$isWritten = $false
+
+	do {
+		try {
+			Add-content $logpath -value $LogMessage -Force -ErrorAction SilentlyContinue
+			$isWritten = $true
+		}
+		catch {
+		}
+	} until ( $isWritten )
+}
+
+# This function creates a balloon notification to display on client computers.
+function New-BaloonNotification {
+	Param(
+		[Parameter(ValueFromPipeline = $true, mandatory = $true)][String]$title,
+		[Parameter(ValueFromPipeline = $true, mandatory = $true)][String]$message,        
+		[Parameter(ValueFromPipeline = $true, mandatory = $false)][ValidateSet('None', 'Info', 'Warning', 'Error')][String]$icon = "Info",
+		[Parameter(ValueFromPipeline = $true, mandatory = $false)][scriptblock]$Script
+	)
+	Add-Type -AssemblyName System.Windows.Forms
+
+	if ($null -eq $script:balloonToolTip) { $script:balloonToolTip = New-Object System.Windows.Forms.NotifyIcon }
+
+	$tip = New-Object System.Windows.Forms.NotifyIcon
+
+
+	$path = Get-Process -id $pid | Select-Object -ExpandProperty Path
+	$tip.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon($path)
+	$tip.BalloonTipIcon = $Icon
+	$tip.BalloonTipText = $message
+	$tip.BalloonTipTitle = $title    
+	$tip.Visible = $true            
+    
+	try {
+		register-objectevent $tip BalloonTipClicked BalloonClicked_event -Action { $script.Invoke() } | Out-Null
+	}
+	catch {}
+	$tip.ShowBalloonTip(10000) # Even if we set it for 1000 milliseconds, it usually follows OS minimum 10 seconds
+	Start-Sleep -seconds 1
+    
+	$tip.Dispose() # Important to dispose otherwise the icon stays in notifications till reboot
+	Get-EventSubscriber -SourceIdentifier "BalloonClicked_event"  -ErrorAction SilentlyContinue | Unregister-Event # In case if the Event Subscription is not disposed
+}
+
 #Import PowerShell Module, install if not already installed
 if (get-module -List Microsoft.Graph.Authentication) {
 	Import-Module Microsoft.Graph.Authentication
@@ -24,6 +80,7 @@ Else {
 	}
 	catch {
 		Write-Output "Could not load the necessary module Microsoft.Graph.Authentication, so can not proceed."
+		exit
 	}	
 }
 
@@ -69,13 +126,23 @@ $requiredscopes = @(
 
 if (Get-MgContext) {	
 	# Disconnect current connection before starting
-	Disconnect-MGGraph
-	Connect-MGGraph -NoWelcome -scopes $requiredscopes
+	try {
+		Disconnect-MGGraph
+		Connect-MGGraph -NoWelcome -scopes $requiredscopes
+	}
+	catch {
+		Write-Output "Unable to login to Graph Command Line Tools"
+	}
 
 }
 else {
 	# Connect with tenant if no existing connection
-	Connect-MGGraph -NoWelcome -scopes $requiredscopes
+	try {
+		Connect-MGGraph -NoWelcome -scopes $requiredscopes
+	}
+	catch {
+		Write-Output "Unable to login to Graph Command Line Tools"
+	}
 }
 
 $ConnectionDetail = Get-MgContext | Select-Object Account, TenantId, Environment, @{l = "Scopes"; e = { $_.Scopes -join "," } }
@@ -99,13 +166,17 @@ $PTAAgentDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/beta/
 $PTAEnabled = $PTAAgentDetail.machinename.count -ge 1
 $PHSEnabled = $OnPremConfigDetails.PasswordHashSync
 
-# Password protection details
-$PasswordProtectionDetails = [PSCustomObject]@{}
-((Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/settings").value | Where-Object { $_.displayName -eq "Password Rule Settings" }).values | ForEach-Object { $PasswordProtectionDetails | Add-Member -NotePropertyName $_.Name -NotePropertyValue $_.value }
+if ($EntraLicense -ne "Entra ID Free") {
+	# Password protection details
+	$PasswordProtectionDetails = [PSCustomObject]@{}
+	((Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/settings").value | Where-Object { $_.displayName -eq "Password Rule Settings" }).values | ForEach-Object { $PasswordProtectionDetails | Add-Member -NotePropertyName $_.Name -NotePropertyValue $_.value }
+}
 
 # Get app ID for Entra ID Connected registered app
 $app = ((Invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/applications").value | Where-Object { $_.displayName -eq "Tenant Schema Extension App" }) | ForEach-Object { [pscustomobject]@{id = $_.id; appid = $_.appid } }
-$DirectoryExtensions = (invoke-mggraphrequest -uri "https://graph.microsoft.com/v1.0/applications/$($app.id)/extensionProperties?`$select=name").value.name | ForEach-Object { $_.replace("extension_" + $app.appid.replace("-", "") + "_", "") }
+if ($app) {
+	$DirectoryExtensions = (invoke-mggraphrequest -uri "https://graph.microsoft.com/v1.0/applications/$($app.id)/extensionProperties?`$select=name").value.name | ForEach-Object { $_.replace("extension_" + $app.appid.replace("-", "") + "_", "") }
+}
 
 $TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; createdDateTime = $_.createdDateTime; countryLetterCode = $_.countryLetterCode; TenantID = $_.Id; OnPremisesSyncEnabled = $_.OnPremisesSyncEnabled; OnPremisesLastSyncDateTime = $_.OnPremisesLastSyncDateTime; TenantType = $_.TenantType; EntraID = $EntraLicense; Domain = (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n"; SecurityDefaults = (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"] ; PTAEnbled = $PTAEnabled; PHSEnabled = $PHSEnabled; passwordWritebackEnabled = $OnPremConfigDetails.passwordWritebackEnabled; DirectoryExtensions = ($DirectoryExtensions -join ","); groupWriteBackEnabled = $OnPremConfigDetails.groupWriteBackEnabled } }
 $EnabledAuthMethods = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy").authenticationMethodConfigurations | ForEach-Object { [pscustomobject]@{AuthMethodType = $_.Id; State = $_.state } }
@@ -135,13 +206,16 @@ $RoleDetail = ForEach ($privilegedRole in $MonitoredPriviledgedRoles) {
 $Roles = ((Invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/roleManagement/directory/roleDefinitions").value | ForEach-Object { [pscustomobject]@{id = $_.id; isBuiltIn = $_.isBuiltIn; displayName = $_.displayName; Enabled = $_.isEnabled; rolePermissions = ($_.rolePermissions.allowedResourceActions -join "`n") } })
 $RBACRoles = $Roles | Where-Object { $_.isBuiltIn -eq $false }
 
-# PIM Roles
-$ActivePIMAssignments = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignmentSchedules?`$expand=principal").value | ForEach-Object { $roledef = $_.RoleDefinitionId; [pscustomobject]@{RoleName = ($Roles | Where-Object { $_.id -eq $roledef }).displayName; PrincipalName = $_.Principal.displayName; PrincipalType = ($_.Principal."@odata.type").replace("`#microsoft.graph.", ""); state = $_.assignmenttype; membership = $_.memberType; StartTime = $_.scheduleInfo.StartDateTime; EndTime = $_.scheduleInfo.expiration.enddatetime; type = $_.scheduleInfo.expiration.type; directoryScopeId = $_.directoryScopeId } } 
-$ElligiblePIMAssignments = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/roleManagement/directory/roleEligibilitySchedules?`$expand=principal").value | ForEach-Object { $roledef = $_.RoleDefinitionId; [pscustomobject]@{RoleName = ($Roles | Where-Object { $_.id -eq $roledef }).displayName; PrincipalName = $_.Principal.displayName; PrincipalType = ($_.Principal."@odata.type").replace("`#microsoft.graph.", ""); state = $_.assignmenttype; membership = $_.memberType; StartTime = $_.scheduleInfo.StartDateTime; EndTime = $_.scheduleInfo.expiration.enddatetime; type = $_.scheduleInfo.expiration.type; directoryScopeId = $_.directoryScopeId } } 
-$PIMRoles = $ActivePIMAssignments + $ElligiblePIMAssignments
+if ($EntraLicense -ne "Entra ID Free") {
+	# PIM Roles
+	$ActivePIMAssignments = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignmentSchedules?`$expand=principal").value | ForEach-Object { $roledef = $_.RoleDefinitionId; [pscustomobject]@{RoleName = ($Roles | Where-Object { $_.id -eq $roledef }).displayName; PrincipalName = $_.Principal.displayName; PrincipalType = ($_.Principal."@odata.type").replace("`#microsoft.graph.", ""); state = $_.assignmenttype; membership = $_.memberType; StartTime = $_.scheduleInfo.StartDateTime; EndTime = $_.scheduleInfo.expiration.enddatetime; type = $_.scheduleInfo.expiration.type; directoryScopeId = $_.directoryScopeId } } 
+	$ElligiblePIMAssignments = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/roleManagement/directory/roleEligibilitySchedules?`$expand=principal").value | ForEach-Object { $roledef = $_.RoleDefinitionId; [pscustomobject]@{RoleName = ($Roles | Where-Object { $_.id -eq $roledef }).displayName; PrincipalName = $_.Principal.displayName; PrincipalType = ($_.Principal."@odata.type").replace("`#microsoft.graph.", ""); state = $_.assignmenttype; membership = $_.memberType; StartTime = $_.scheduleInfo.StartDateTime; EndTime = $_.scheduleInfo.expiration.enddatetime; type = $_.scheduleInfo.expiration.type; directoryScopeId = $_.directoryScopeId } } 
+	$PIMRoles = $ActivePIMAssignments + $ElligiblePIMAssignments
+}
 
-$Accessreviews = (invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/identityGovernance/accessReviews/definitions").value | ForEach-Object { [pscustomobject]@{AccessReviewName = $_.displayName; status = $_.status; scope = if ($_.instanceEnumerationScope.query) { (invoke-mggraphrequest -uri $_.instanceEnumerationScope.query).displayName -join "," } else { (Invoke-MgGraphRequest -uri $_.scope.resourceScopes.query).DisplayName -join "," }; createdDateTime = $_.createdDateTime; lastModifiedDateTime = $_.lastModifiedDateTime; descriptionForReviewers = $_.descriptionForReviewers; descriptionForAdmins = $_.descriptionForAdmins } }
-
+if ($EntraLicense -eq "Entra ID P2") {
+	$Accessreviews = (invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/identityGovernance/accessReviews/definitions").value | ForEach-Object { [pscustomobject]@{AccessReviewName = $_.displayName; status = $_.status; scope = if ($_.instanceEnumerationScope.query) { (invoke-mggraphrequest -uri $_.instanceEnumerationScope.query).displayName -join "," } else { (Invoke-MgGraphRequest -uri $_.scope.resourceScopes.query).DisplayName -join "," }; createdDateTime = $_.createdDateTime; lastModifiedDateTime = $_.lastModifiedDateTime; descriptionForReviewers = $_.descriptionForReviewers; descriptionForAdmins = $_.descriptionForAdmins } }
+}
 # License summary 
 $LicenseDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/subscribedSkus?$select=skuPartNumber,skuId,prepaidUnits,consumedUnits,servicePlans").value | ForEach-Object { [pscustomobject]@{Skuid = $_.skuId; skuPartNumber = $_.skuPartNumber; activeUnits = $_.prepaidUnits["enabled"]; consumedUnits = $_.consumedUnits; availableUnits = ($_.prepaidUnits["enabled"] - $_.consumedUnits) } }
 $CASPolicyDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies" ).value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; State = $_.state; createdDateTime = $_.createdDateTime; modifiedDateTime = $_.modifiedDateTime } }
