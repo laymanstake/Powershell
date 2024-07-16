@@ -34,8 +34,8 @@ $CopyRightInfo = " @Copyright Nitish Kumar <a href='https://github.com/laymansta
 
 # CSS codes to format the report
 $header = @"
-<style>
-    body { background-color: #b9d7f7; }
+<style>    
+	body { background-color: #D3D3D3; }
     h1 { font-family: Arial, Helvetica, sans-serif; color: #e68a00; font-size: 28px; }    
     h2 { font-family: Arial, Helvetica, sans-serif; color: #000099; font-size: 16px; }    
     table { font-size: 12px; border: 1px;  font-family: Arial, Helvetica, sans-serif; } 	
@@ -55,14 +55,27 @@ All permissions reference
 Ref: https://learn.microsoft.com/en-us/graph/permissions-reference
 #>
 
+$requiredscopes = @(
+	"Directory.Read.All", # Required for reading licenses, organization settings, roles
+	"OnPremDirectorySynchronization.Read.All", # Required for on-prem directory synchronization settings
+	"Application.Read.All", # Required for reading enabled directory extensions
+	"RoleManagement.Read.All" # Required for reading Piviledged and RBAC roles
+	"AccessReview.Read.All", # Required for reading access review settings
+	"Policy.Read.All", # Required for reading conditional access policy details
+	"SecurityEvents.Read.All", # Required for reading Identity security score details
+	"Directory.ReadWrite.All", # Required for reading Pass Through authenication agent details
+	"Policy.ReadWrite.AuthenticationMethod" # Required for reading authentication method details
+) # Enterprise Application named Microsoft Graph Command Line Tools would be granted delegated permissions
+
 if (Get-MgContext) {	
 	# Disconnect current connection before starting
 	Disconnect-MGGraph
-	Connect-MGGraph -NoWelcome -scopes Directory.Read.All, IdentityProvider.Read.All, OnPremDirectorySynchronization.Read.All, SecurityEvents.Read.All
+	Connect-MGGraph -NoWelcome -scopes $requiredscopes
+
 }
 else {
 	# Connect with tenant if no existing connection
-	Connect-MGGraph -NoWelcome -scopes Directory.Read.All, IdentityProvider.Read.All, OnPremDirectorySynchronization.Read.All, SecurityEvents.Read.All
+	Connect-MGGraph -NoWelcome -scopes $requiredscopes
 }
 
 $ConnectionDetail = Get-MgContext | Select-Object Account, TenantId, Environment, @{l = "Scopes"; e = { $_.Scopes -join "," } }
@@ -181,7 +194,7 @@ if ($Accessreviews) {
 }
 
 if ($PasswordProtectionDetails) {
-	$PasswordProtectionSummary = ($PasswordProtectionDetails | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Password Protection Summary: $($TenantBasicDetail.DisplayName)</h2>") -replace "`n", "<br>"
+	$PasswordProtectionSummary = ($PasswordProtectionDetails | ConvertTo-Html -As List -Fragment -PreContent "<h2>Password Protection Summary: $($TenantBasicDetail.DisplayName)</h2>") -replace "`n", "<br>"
 }
 
 $LicenseSummary = $LicenseDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>License Summary: $($TenantBasicDetail.DisplayName)</h2>"
