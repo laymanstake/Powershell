@@ -128,6 +128,7 @@ Ref: https://learn.microsoft.com/en-us/graph/permissions-reference
 #>
 
 $requiredscopes = @(
+	"IdentityProvider.Read.All", # Required for reading configured identity providers
 	"Directory.Read.All", # Required for reading licenses, organization settings, roles
 	"OnPremDirectorySynchronization.Read.All", # Required for on-prem directory synchronization settings
 	"Application.Read.All", # Required for reading enabled directory extensions
@@ -142,23 +143,23 @@ $requiredscopes = @(
 if (Get-MgContext) {	
 	# Disconnect current connection before starting
 	try {
-		$null = Disconnect-MGGraph
-		Connect-MGGraph -NoWelcome -scopes $requiredscopes
+		$null = Disconnect-MGGraph		
+		Connect-MGGraph -NoWelcome -scopes $requiredscopes -ErrorAction Stop
 	}
-	catch {
-		$Error[0]
+	catch {		
 		Write-Output "Unable to login to Graph Command Line Tools"
+		exit
 	}
 
 }
 else {
 	# Connect with tenant if no existing connection
 	try {
-		Connect-MGGraph -NoWelcome -scopes $requiredscopes
+		Connect-MGGraph -NoWelcome -scopes $requiredscopes -ErrorAction Stop
 	}
-	catch {
-		$Error[0]
+	catch {		
 		Write-Output "Unable to login to Graph Command Line Tools"
+		exit
 	}
 }
 
@@ -189,14 +190,17 @@ $PTAAgentDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/beta/
 $PTAEnabled = $PTAAgentDetail.machinename.count -ge 1
 $PHSEnabled = $OnPremConfigDetails.PasswordHashSync
 
-$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; createdDateTime = $_.createdDateTime; countryLetterCode = $_.countryLetterCode; TenantID = $_.Id; OnPremisesSyncEnabled = $_.OnPremisesSyncEnabled; OnPremisesLastSyncDateTime = $_.OnPremisesLastSyncDateTime; TenantType = $_.TenantType; EntraID = $EntraLicense; Domain = (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n"; SecurityDefaults = (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"] ; PTAEnbled = $PTAEnabled; PHSEnabled = $PHSEnabled; passwordWritebackEnabled = $OnPremConfigDetails.passwordWritebackEnabled; DirectoryExtensions = ($DirectoryExtensions -join ","); groupWriteBackEnabled = $OnPremConfigDetails.groupWriteBackEnabled } }
+$IdentityProviders = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/identityProviders?`$select=name").value.values -join ","
+
+$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; createdDateTime = $_.createdDateTime; countryLetterCode = $_.countryLetterCode; TenantID = $_.Id; OnPremisesSyncEnabled = $_.OnPremisesSyncEnabled; OnPremisesLastSyncDateTime = $_.OnPremisesLastSyncDateTime; TenantType = $_.TenantType; EntraID = $EntraLicense; Domain = (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n"; SecurityDefaults = (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"] ; PTAEnbled = $PTAEnabled; PHSEnabled = $PHSEnabled; passwordWritebackEnabled = $OnPremConfigDetails.passwordWritebackEnabled; DirectoryExtensions = ($DirectoryExtensions -join ","); groupWriteBackEnabled = $OnPremConfigDetails.groupWriteBackEnabled; IdentityProviders = $IdentityProviders } }
 
 
 if ($TenantBasicDetail.OnPremisesSyncEnabled) {
 	if (Get-AzAccessToken -ErrorAction:SilentlyContinue -WarningAction:SilentlyContinue) {
 		try {
 			$null = Disconnect-AzAccount
-			Connect-azAccount
+			#			Connect-azAccount -ErrorAction Stop
+			Connect-AzAccount -AccountId $ConnectionDetail.Account -TenantId $ConnectionDetail.TenantId -Scope CurrentUser -ErrorAction Stop
 		}
 		catch {
 			Write-Output "Unable to login to Az Accounts"
@@ -204,7 +208,8 @@ if ($TenantBasicDetail.OnPremisesSyncEnabled) {
 	}
 	else {
 		try {
-			Connect-azAccount
+			#Connect-azAccount -ErrorAction Stop
+			Connect-AzAccount -AccountId $ConnectionDetail.Account -TenantId $ConnectionDetail.TenantId -Scope CurrentUser -ErrorAction Stop
 		}
 		catch {
 			$Error[0]
