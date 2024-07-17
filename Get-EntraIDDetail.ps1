@@ -69,14 +69,29 @@ function New-BaloonNotification {
 }
 
 #Import PowerShell Module, install if not already installed
+if (get-module -List Az.Accounts) {
+	Import-Module Az.Accounts
+}
+Else {
+	Write-Output "Installing the module Az.Accounts as current user scope"
+	try {
+		Set-PSRepository PSGallery -InstallationPolicy Trusted
+		Install-Module -Name Az.Accounts -Scope CurrentUser -Confirm:$False -Force		
+	}
+	catch {
+		Write-Output "Could not load the necessary module Az.Accounts, so can not proceed."
+		exit
+	}	
+}
+
 if (get-module -List Microsoft.Graph.Authentication) {
 	Import-Module Microsoft.Graph.Authentication
 }
 Else {
 	Write-Output "Installing the module Microsoft.Graph.Authentication as current user scope"
 	try {
-		Install-Module -Name Microsoft.graph.authentication -Scope CurrentUser -AllowClobber
-		Import-Module Microsoft.Graph.Authentication	
+		Set-PSRepository PSGallery -InstallationPolicy Trusted
+		Install-Module -Name Microsoft.graph.authentication -Scope CurrentUser 	-Confirm:$False -Force	
 	}
 	catch {
 		Write-Output "Could not load the necessary module Microsoft.Graph.Authentication, so can not proceed."
@@ -124,6 +139,28 @@ $requiredscopes = @(
 	"Policy.ReadWrite.AuthenticationMethod" # Required for reading authentication method details
 ) # Enterprise Application named Microsoft Graph Command Line Tools would be granted delegated permissions
 
+if(Get-AzAccessToken -ErrorAction:SilentlyContinue -WarningAction:SilentlyContinue){
+	try {
+		Disconnect-AzAccount
+		Connect-azAccount
+	}catch {
+		Write-Output "Unable to login to Az Accounts"
+	}
+} else {
+	try {
+		Connect-azAccount
+	}
+	catch {
+		$Error[0]
+		Write-Output "Unable to login to Az Accounts"
+	}
+}
+
+# Keeping Az token for using later on
+Update-AzConfig -DisplayBreakingChangeWarning $false
+$encryptedToken = (Get-AzAccessToken -AsSecureString -ErrorAction Stop).token
+$azToken = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($encryptedToken))
+
 if (Get-MgContext) {	
 	# Disconnect current connection before starting
 	try {
@@ -131,6 +168,7 @@ if (Get-MgContext) {
 		Connect-MGGraph -NoWelcome -scopes $requiredscopes
 	}
 	catch {
+		$Error[0]
 		Write-Output "Unable to login to Graph Command Line Tools"
 	}
 
@@ -141,6 +179,7 @@ else {
 		Connect-MGGraph -NoWelcome -scopes $requiredscopes
 	}
 	catch {
+		$Error[0]
 		Write-Output "Unable to login to Graph Command Line Tools"
 	}
 }
@@ -179,6 +218,19 @@ if ($app) {
 }
 
 $TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; createdDateTime = $_.createdDateTime; countryLetterCode = $_.countryLetterCode; TenantID = $_.Id; OnPremisesSyncEnabled = $_.OnPremisesSyncEnabled; OnPremisesLastSyncDateTime = $_.OnPremisesLastSyncDateTime; TenantType = $_.TenantType; EntraID = $EntraLicense; Domain = (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n"; SecurityDefaults = (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"] ; PTAEnbled = $PTAEnabled; PHSEnabled = $PHSEnabled; passwordWritebackEnabled = $OnPremConfigDetails.passwordWritebackEnabled; DirectoryExtensions = ($DirectoryExtensions -join ","); groupWriteBackEnabled = $OnPremConfigDetails.groupWriteBackEnabled } }
+
+# Find latest available Entra ID connect version
+$VersionHistory = Invoke-RestMethod "https://raw.githubusercontent.com/MicrosoftDocs/entra-docs/main/docs/identity/hybrid/connect/reference-connect-version-history.md"
+$LatestVersion = $VersionHistory -split "`n" | Where-Object {$_ -match "^## [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+"} | ForEach-Object {$_ -replace "## "} | Sort-Object | Select-Object -Last 1
+if($LatestVersion -notmatch "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$") {
+    Write-Output "Unable to determine latest version of Azure AD Connect"
+}
+$LatestVersion = $LatestVersion.ToString()
+
+# Check if the Azure API to for Entra ID connect health accessible
+$PremiumCheck = Invoke-RestMethod -Uri 'https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/GetServices/PremiumCheck?serviceType=AadSyncService&skipCount=0&takeCount=50&api-version=2014-01-01' -Headers @{'Authorization'="Bearer $azToken"}
+$EntraIDConnectDetails = (Invoke-RestMethod -Uri "https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/$($PremiumCheck.value[0].serviceName)/servicemembers?api-version=2014-01-01" -Headers @{'Authorization'="Bearer $azToken"}).value | ForEach-Object{[pscustomobject]@{machinename=$_.machinename;Enabled=-Not($_.disabled);version=(Invoke-RestMethod -Uri "https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/$($PremiumCheck.value[0].serviceName)/servicemembers/$($_.serviceMemberId)/serviceconfiguration?api-version=2014-01-01" -Headers @{'Authorization'="Bearer $azToken"}).version;LatestVersionAvailable = $LatestVersion; staging=($_.monitoringConfigurationsComputed |Where-Object{$_.key -eq "StagingMode"}).value;createdDate=[DateTime]::Parse($_.createdDate).ToString("yyyy-MM-dd HH:mm:ss");lastReboot=[DateTime]::Parse($_.lastreboot).ToString("yyyy-MM-dd HH:mm:ss");OsName=$_.Osname}}
+
 $EnabledAuthMethods = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy").authenticationMethodConfigurations | ForEach-Object { [pscustomobject]@{AuthMethodType = $_.Id; State = $_.state } }
 
 $MonitoredPriviledgedRoles = ("Global Administrator", "Global Reader", "Security Administrator", "Privileged Authentication Administrator", "User Administrator")
@@ -255,6 +307,10 @@ $EnabledAuthSummary = ($EnabledAuthMethods | Sort-Object State -Descending | Con
 $RoleSummary = ($RoleDetail | Sort-Object Count | ConvertTo-Html -As Table  -Fragment -PreContent "<h2>Priviledged Entra Role Summary: $($TenantBasicDetail.DisplayName)</h2>")
 $TenantSummary = ($TenantBasicDetail | ConvertTo-Html -As List -Fragment -PreContent "<h2>Entra Summary: $forest</h2>") -replace "`n", "<br>"
 
+if($EntraIDConnectDetails){
+	$EntraIDConnectSummary = $EntraIDConnectDetails | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Entra ID connect agents Summary: $($TenantBasicDetail.DisplayName)</h2>"
+}
+
 if ($PTAEnabled) {
 	$PTAAgentSummary = $PTAAgentDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Pass through agents Summary: $($TenantBasicDetail.DisplayName)</h2>"
 }
@@ -278,7 +334,7 @@ if ($PasswordProtectionDetails) {
 $LicenseSummary = $LicenseDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>License Summary: $($TenantBasicDetail.DisplayName)</h2>"
 $CASSummary = $CASPolicyDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Conditional Access Policy Summary: $($TenantBasicDetail.DisplayName)</h2>"
 $SecureScoreReportSummary = $SecureScoreReport | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Identity - Secure Scores Summary: $($TenantBasicDetail.DisplayName)</h2>"
-$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $PTAAgentSummary $LicenseSummary $RoleSummary $RBACRolesSummary $PIMRolesSummary $AccessreviewSummary $PasswordProtectionSummary $EnabledAuthSummary $CASSummary $SecureScoreReportSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
+$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $EntraIDConnectSummary $PTAAgentSummary $LicenseSummary $RoleSummary $RBACRolesSummary $PIMRolesSummary $AccessreviewSummary $PasswordProtectionSummary $EnabledAuthSummary $CASSummary $SecureScoreReportSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
 
 # To preseve HTMLformatting in description
 $ReportRaw = [System.Web.HttpUtility]::HtmlDecode($ReportRaw)
