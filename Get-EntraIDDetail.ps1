@@ -192,7 +192,8 @@ $PHSEnabled = $OnPremConfigDetails.PasswordHashSync
 
 $IdentityProviders = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/identityProviders?`$select=name").value.values -join ","
 
-$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; createdDateTime = $_.createdDateTime; countryLetterCode = $_.countryLetterCode; TenantID = $_.Id; OnPremisesSyncEnabled = $_.OnPremisesSyncEnabled; OnPremisesLastSyncDateTime = $_.OnPremisesLastSyncDateTime; TenantType = $_.TenantType; EntraID = $EntraLicense; Domain = (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n"; SecurityDefaults = (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"] ; PTAEnbled = $PTAEnabled; PHSEnabled = $PHSEnabled; passwordWritebackEnabled = $OnPremConfigDetails.passwordWritebackEnabled; DirectoryExtensions = ($DirectoryExtensions -join ","); groupWriteBackEnabled = $OnPremConfigDetails.groupWriteBackEnabled; IdentityProviders = $IdentityProviders } }
+$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; createdDateTime = $_.createdDateTime; countryLetterCode = $_.countryLetterCode; TenantID = $_.Id; OnPremisesSyncEnabled = $_.OnPremisesSyncEnabled; OnPremisesLastSyncDateTime = $_.OnPremisesLastSyncDateTime; TenantType = $_.TenantType; EntraID = $EntraLicense; Domain = (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n"; SecurityDefaults = (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"] ; PTAEnbled = $PTAEnabled; PHSEnabled = $PHSEnabled; passwordWritebackEnabled = $OnPremConfigDetails.passwordWritebackEnabled; DirectoryExtensions = ($DirectoryExtensions -join ","); groupWriteBackEnabled = $OnPremConfigDetails.groupWriteBackEnabled; IdentityProviders = $IdentityProviders; cloudPasswordPolicyForPasswordSyncedUsersEnabled = $OnPremConfigDetails.cloudPasswordPolicyForPasswordSyncedUsersEnabled } 
+}
 
 
 if ($TenantBasicDetail.OnPremisesSyncEnabled) {
@@ -243,7 +244,7 @@ if ($TenantBasicDetail.OnPremisesSyncEnabled) {
 if ($EntraLicense -ne "Entra ID Free") {
 	# Password protection details
 	$PasswordProtectionDetails = [PSCustomObject]@{}
-	((Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/groupSettings").value | Where-Object { $_.displayName -eq "Password Rule Settings" }).values | Where-Object { $_ } | ForEach-Object { $PasswordProtectionDetails | Add-Member -NotePropertyName $_.Name -NotePropertyValue $_.value }
+	((Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/groupSettings").value | Where-Object { $_.displayName -eq "Password Rule Settings" }).values | Where-Object { $_ } | ForEach-Object { $PasswordProtectionDetails | Add-Member -NotePropertyName $_.Name -NotePropertyValue (($_.value -split "\t") -join "`n") }
 }
 
 $EnabledAuthMethods = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy").authenticationMethodConfigurations | ForEach-Object { [pscustomobject]@{AuthMethodType = $_.Id; State = $_.state } }
@@ -285,10 +286,12 @@ if ($EntraLicense -eq "Entra ID P2") {
 }
 # License summary 
 $LicenseDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/subscribedSkus?$select=skuPartNumber,skuId,prepaidUnits,consumedUnits,servicePlans").value | ForEach-Object { [pscustomobject]@{Skuid = $_.skuId; skuPartNumber = $_.skuPartNumber; activeUnits = $_.prepaidUnits["enabled"]; consumedUnits = $_.consumedUnits; availableUnits = ($_.prepaidUnits["enabled"] - $_.consumedUnits) } }
-$CASPolicyDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies" ).value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; State = $_.state; createdDateTime = $_.createdDateTime; modifiedDateTime = $_.modifiedDateTime } }
+$CASPolicyDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies" ).value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; State = $_.state; createdDateTime = $_.createdDateTime; modifiedDateTime = $_.modifiedDateTime; locations = $_.conditions.locations.includeLocations -join "`n"; platforms = $_.conditions.platforms.includeplatforms -join "`n" ; clientapplicationtypes = $_.conditions.clientAppTypes -join "`n" } }
+
+$PasswordLessDetails = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/beta/policies/authenticationmethodspolicy/authenticationMethodConfigurations/MicrosoftAuthenticator").includetargets | ForEach-Object { [pscustomobject]@{authenticationMode = if ($_.authenticationMode -eq "any" -OR $_.authenticationMode -eq "deviceBasedPush") { "Passwordless" } else { "Password Based" }; id = $_.id; isRegistrationRequired = $_.isRegistrationRequired; targetType = $_.targetType } }
 
 # Collaberation settings
-$Collabsettings = (invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/authorizationPolicy/authorizationPolicy").defaultUserRolePermissions
+$Collabsettings = (invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/policies/authorizationPolicy") | % { [pscustomobject]@{AppRegistrationForAll = $_.defaultUserRolePermissions.allowedToCreateApps; allowedToReadOtherUsers = $_.defaultUserRolePermissions.allowedToReadOtherUsers; allowedToCreateSecurityGroups = $_.defaultUserRolePermissions.allowedToCreateSecurityGroups; AllowGuestInvitesFrom = $_.allowInvitesFrom; allowedToUseSSPR = $_.allowedToUseSSPR; allowEmailVerifiedUsersToJoinOrganization = $_.allowEmailVerifiedUsersToJoinOrganization; blockMsolPowerShell = $_.blockMsolPowerShell; allowedToCreateTenants = $_.defaultUserRolePermissions.allowedToCreateTenants } }
 
 # Identtity Secure score recommendations
 $Controls = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/Security/secureScoreControlProfiles?`$filter=controlCategory eq 'Identity'").value | ForEach-Object { [pscustomobject]@{controlCategory = $_.controlCategory; id = $_.id; title = $_.title; service = $_.service; userImpact = $_.userImpact; threats = ($_.threats -join ","); actionType = $_.actionType; remediation = $_.remediation; maxScore = $_.maxScore; deprecated = $_.deprecated } }
@@ -342,18 +345,22 @@ if ($Accessreviews) {
 	$AccessreviewSummary = ($Accessreviews | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Access Review Summary: $($TenantBasicDetail.DisplayName)</h2>") -replace "`n", "<br>"
 }
 
-if ($PasswordProtectionDetails.PSObject.Properties.Count -eq 0) {
+if ($PasswordProtectionDetails.PSObject.Properties.Count -ge 1) {
 	$PasswordProtectionSummary = ($PasswordProtectionDetails | ConvertTo-Html -As List -Fragment -PreContent "<h2>Password Protection Summary: $($TenantBasicDetail.DisplayName)</h2>") -replace "`n", "<br>"
 }
 
 if ($CASPolicyDetail) {
-	$CASSummary = $CASPolicyDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Conditional Access Policy Summary: $($TenantBasicDetail.DisplayName)</h2>"
+	$CASSummary = ($CASPolicyDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Conditional Access Policy Summary: $($TenantBasicDetail.DisplayName)</h2>") -replace "`n", "<br>"
 }
 
-$LicenseSummary = $LicenseDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>License Summary: $($TenantBasicDetail.DisplayName)</h2>"
+if ($PasswordLessDetails) {
+	$PasswordLessSummary = $PasswordLessDetails | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Passwordless Auth mode Summary: $($TenantBasicDetail.DisplayName)</h2>"
+}
 
+$CollabsettingsSummary = $Collabsettings | ConvertTo-Html -As List -Fragment -PreContent "<h2>Collaberation settings Summary: $($TenantBasicDetail.DisplayName)</h2>"
+$LicenseSummary = $LicenseDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>License Summary: $($TenantBasicDetail.DisplayName)</h2>"
 $SecureScoreReportSummary = $SecureScoreReport | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Identity - Secure Scores Summary: $($TenantBasicDetail.DisplayName)</h2>"
-$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $EntraIDConnectSummary $PTAAgentSummary $LicenseSummary $RoleSummary $RBACRolesSummary $PIMRolesSummary $AccessreviewSummary $PasswordProtectionSummary $EnabledAuthSummary $CASSummary $SecureScoreReportSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
+$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $CollabsettingsSummary $EntraIDConnectSummary $PasswordLessSummary $PTAAgentSummary $LicenseSummary $RoleSummary $RBACRolesSummary $PIMRolesSummary $AccessreviewSummary $PasswordProtectionSummary $EnabledAuthSummary $CASSummary $SecureScoreReportSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
 
 # To preseve HTMLformatting in description
 $ReportRaw = [System.Web.HttpUtility]::HtmlDecode($ReportRaw)
