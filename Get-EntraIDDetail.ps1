@@ -1,5 +1,5 @@
 <#  
-    Author : Nitish Kumar
+    Author : Nitish Kumar (nitish@nitishkumar.net)
     Performs Entra ID Assessment
     version 1.0 | 17/07/2023 Initial version
 
