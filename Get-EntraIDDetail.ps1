@@ -580,7 +580,7 @@ if ($ConnectionDetail.scopes -contains "Policy.Read.All") {
 	}	
 
 	try {
-		$PasswordLessDetails = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/beta/policies/authenticationmethodspolicy/authenticationMethodConfigurations/MicrosoftAuthenticator").includetargets | ForEach-Object { [pscustomobject]@{authenticationMode = if ($_.authenticationMode -eq "any" -OR $_.authenticationMode -eq "deviceBasedPush") { "Passwordless" } else { "Password Based" }; id = $_.id; isRegistrationRequired = $_.isRegistrationRequired; targetType = $_.targetType } }\
+		$PasswordLessDetails = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/beta/policies/authenticationmethodspolicy/authenticationMethodConfigurations/MicrosoftAuthenticator").includetargets | ForEach-Object { [pscustomobject]@{authenticationMode = if ($_.authenticationMode -eq "any" -OR $_.authenticationMode -eq "deviceBasedPush") { "Passwordless" } else { "Password Based" }; id = $_.id; isRegistrationRequired = $_.isRegistrationRequired; targetType = $_.targetType } }
 		$message = "Passwordless Auth details summary done."
 		Write-Log -logtext $message -logpath $logpath
 
