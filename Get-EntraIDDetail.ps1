@@ -2,6 +2,7 @@
     Author : Nitish Kumar (nitish@nitishkumar.net)
     Performs Entra ID Assessment
     version 1.0 | 17/07/2023 Initial version
+	version 1.1 | 19/07/2023 Error handling improvements
 
     Disclaimer: This script is designed to only read data from the entra id and should not cause any problems or change configurations but author do not claim to be responsible for any issues. Do due dilligence before running in the production environment
 #>
@@ -205,8 +206,9 @@ If ($logopath) {
 <#
 	# Need to run below if you wish remove ALL user consented delegated permissions from the Microsoft Graph Command Line Tools enterprise application	
 	connect-mggraph -Scopes Directory.ReadWrite.All
+	$PrincipalId = (invoke-mggraphrequest -uri "https://graph.microsoft.com/v1.0/me?`$select=id").id
 	$sp = (invoke-mggraphrequest -uri "https://graph.microsoft.com/v1.0/servicePrincipals?`$search=`"displayName:Microsoft Graph Command Line Tools`"`&`$select=id,displayName" -Headers @{ "ConsistencyLevel" = "eventual" }).value
-	$oAuthgrants = (invoke-mggraphrequest -uri "https://graph.microsoft.com/v1.0/oauth2PermissionGrants?`$filter=clientid eq '$($sp.id)'`&`$select=id,scope").value
+	$oAuthgrants = (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/oauth2PermissionGrants?`$filter=clientid eq '$($sp.id)'and PrincipalId eq '$($PrincipalId)'").value
 	invoke-mggraphrequest -method DELETE -uri "https://graph.microsoft.com/v1.0/oauth2PermissionGrants/$($oAuthgrants.id)"
 #>
 
@@ -239,8 +241,9 @@ if (Get-MgContext) {
 		Connect-MGGraph -NoWelcome -scopes $requiredscopes -ErrorAction Stop
 	}
 	catch {		
+		$message = "MS Graph login: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath			
 		Write-Output "Unable to login to Graph Command Line Tools"
-		exit
 	}
 
 }
@@ -249,7 +252,9 @@ else {
 	try {
 		Connect-MGGraph -NoWelcome -scopes $requiredscopes -ErrorAction Stop
 	}
-	catch {		
+	catch {	
+		$message = "MS Graph login: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath			
 		Write-Output "Unable to login to Graph Command Line Tools"
 		exit
 	}
