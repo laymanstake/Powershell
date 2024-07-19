@@ -262,7 +262,13 @@ New-BaloonNotification -title "Information" -message $message
 $ConnectionDetail = Get-MgContext | Select-Object Account, TenantId, Environment, Scopes
 
 if ($ConnectionDetail.scopes -contains "Directory.Read.All" -OR $ConnectionDetail.scopes -contains "Directory.ReadWrite.All") {
-	$ServicePlans = ((Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/subscribedSkus?`$select=skuPartNumber,skuId,prepaidUnits,consumedUnits,servicePlans").value | Where-Object { $_.ServicePlans.ProvisioningStatus -eq "Success" }).ServicePlans.ServicePlanName
+	try {
+		$ServicePlans = ((Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/subscribedSkus?`$select=skuPartNumber,skuId,prepaidUnits,consumedUnits,servicePlans").value | Where-Object { $_.ServicePlans.ProvisioningStatus -eq "Success" }).ServicePlans.ServicePlanName
+	}
+	catch {
+		$message = "Service Plan details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
 
 	If ($ServicePlans -contains "AAD_Premium_P2") {
 		$EntraLicense = "Entra ID P2"
@@ -277,40 +283,81 @@ if ($ConnectionDetail.scopes -contains "Directory.Read.All" -OR $ConnectionDetai
 
 # Get app ID for Entra ID Connected registered app
 if ($ConnectionDetail.scopes -contains "Directory.Read.All" -OR $ConnectionDetail.scopes -contains "Directory.ReadWrite.All" -OR $ConnectionDetail.scopes -contains "Application.Read.All") {
-	$app = ((Invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/applications").value | Where-Object { $_.displayName -eq "Tenant Schema Extension App" }) | ForEach-Object { [pscustomobject]@{id = $_.id; appid = $_.appid } }
-	if ($app) {
-		$DirectoryExtensions = (invoke-mggraphrequest -uri "https://graph.microsoft.com/v1.0/applications/$($app.id)/extensionProperties?`$select=name").value.name | ForEach-Object { $_.replace("extension_" + $app.appid.replace("-", "") + "_", "") }
+	try {
+		$app = ((Invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/applications").value | Where-Object { $_.displayName -eq "Tenant Schema Extension App" }) | ForEach-Object { [pscustomobject]@{id = $_.id; appid = $_.appid } }
+	}
+	catch {
+		$message = "Directory Extensions Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
 	}
 
-	$message = "Directory extensions identified: $($DirectoryExtensions -join ",")"
-	Write-Log -logtext $message -logpath $logpath
+	if ($app) {
+		try {
+			$DirectoryExtensions = (invoke-mggraphrequest -uri "https://graph.microsoft.com/v1.0/applications/$($app.id)/extensionProperties?`$select=name").value.name | ForEach-Object { $_.replace("extension_" + $app.appid.replace("-", "") + "_", "") }
+			$message = "Directory extensions identified: $($DirectoryExtensions -join ",")"
+			Write-Log -logtext $message -logpath $logpath
+		}
+		catch {
+			$message = "Directory Extensions Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+			Write-Log -logtext $message -logpath $logpath		
+		}
+	}	
 }
 
 # On-Premise configuration
 if ($ConnectionDetail.scopes -contains "OnPremDirectorySynchronization.Read.All") {
-	$OnPremConfigDetails = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/directory/onPremisesSynchronization").value.features | ForEach-Object { [pscustomobject]@{PasswordHashSync = $_.passwordSyncEnabled; passwordWritebackEnabled = $_.passwordWritebackEnabled; cloudPasswordPolicyForPasswordSyncedUsersEnabled = $_.cloudPasswordPolicyForPasswordSyncedUsersEnabled; userWritebackEnabled = $_.userWritebackEnabled; groupWriteBackEnabled = $_.groupWriteBackEnabled; deviceWritebackEnabled = $_.deviceWritebackEnabled; unifiedGroupWritebackEnabled = $_.unifiedGroupWritebackEnabled; directoryExtensionsEnabled = $_.directoryExtensionsEnabled; synchronizeUpnForManagedUsersEnabled = $_.synchronizeUpnForManagedUsersEnabled } }
+	try {
+		$OnPremConfigDetails = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/directory/onPremisesSynchronization").value.features | ForEach-Object { [pscustomobject]@{PasswordHashSync = $_.passwordSyncEnabled; passwordWritebackEnabled = $_.passwordWritebackEnabled; cloudPasswordPolicyForPasswordSyncedUsersEnabled = $_.cloudPasswordPolicyForPasswordSyncedUsersEnabled; userWritebackEnabled = $_.userWritebackEnabled; groupWriteBackEnabled = $_.groupWriteBackEnabled; deviceWritebackEnabled = $_.deviceWritebackEnabled; unifiedGroupWritebackEnabled = $_.unifiedGroupWritebackEnabled; directoryExtensionsEnabled = $_.directoryExtensionsEnabled; synchronizeUpnForManagedUsersEnabled = $_.synchronizeUpnForManagedUsersEnabled } }
+	}
+	catch {
+		$message = "Onprem config Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
 	$PHSEnabled = $OnPremConfigDetails.PasswordHashSync
 }
 # Pass through authentication details
 if ($ConnectionDetail.scopes -contains "Directory.ReadWrite.All") {
-	$PTAAgentDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/beta/onPremisesPublishingProfiles/authentication/agentGroups?`$expand=agents").value.Agents | ForEach-Object { [PSCustomObject]@{machinename = $_.machinename; externalIp = $_.externalIp; status = $_.status; supportedPublishingTypes = $_.supportedPublishingTypes -join "," } }
+	try {
+		$PTAAgentDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/beta/onPremisesPublishingProfiles/authentication/agentGroups?`$expand=agents").value.Agents | ForEach-Object { [PSCustomObject]@{machinename = $_.machinename; externalIp = $_.externalIp; status = $_.status; supportedPublishingTypes = $_.supportedPublishingTypes -join "," } }
+	}
+	catch {
+		$message = "PTA Agent Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
 	$PTAEnabled = $PTAAgentDetail.machinename.count -ge 1
 }
 
 if ($ConnectionDetail.scopes -contains "IdentityProvider.Read.All") {
-	$IdentityProviders = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/identityProviders?`$select=name").value.values -join ","
+	try {
+		$IdentityProviders = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/identityProviders?`$select=name").value.values -join ","
+	}
+	catch {
+		$message = "Identity Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
 }
 
 if ($ConnectionDetail.scopes -contains "Policy.Read.All") {
-	$SecurityDefaults = (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"]
+	try {
+		$SecurityDefaults = (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"]
+	}
+	catch {
+		$message = "Security defaults: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
 }
 
 if ($ConnectionDetail.scopes -contains "Directory.Read.All" -OR $ConnectionDetail.scopes -contains "Directory.ReadWrite.All") {
-	$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; createdDateTime = $_.createdDateTime; countryLetterCode = $_.countryLetterCode; TenantID = $_.Id; OnPremisesSyncEnabled = $_.OnPremisesSyncEnabled; OnPremisesLastSyncDateTime = $_.OnPremisesLastSyncDateTime; TenantType = $_.TenantType; EntraID = $EntraLicense; Domain = (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "``n"; SecurityDefaults = $SecurityDefaults ; PTAEnbled = $PTAEnabled; PHSEnabled = $PHSEnabled; passwordWritebackEnabled = $OnPremConfigDetails.passwordWritebackEnabled; DirectoryExtensions = ($DirectoryExtensions -join ","); groupWriteBackEnabled = $OnPremConfigDetails.groupWriteBackEnabled; IdentityProviders = $IdentityProviders; cloudPasswordPolicyForPasswordSyncedUsersEnabled = $OnPremConfigDetails.cloudPasswordPolicyForPasswordSyncedUsersEnabled } }
+	try {
+		$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; createdDateTime = $_.createdDateTime; countryLetterCode = $_.countryLetterCode; TenantID = $_.Id; OnPremisesSyncEnabled = $_.OnPremisesSyncEnabled; OnPremisesLastSyncDateTime = $_.OnPremisesLastSyncDateTime; TenantType = $_.TenantType; EntraID = $EntraLicense; Domain = (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "`n"; SecurityDefaults = $SecurityDefaults ; PTAEnbled = $PTAEnabled; PHSEnabled = $PHSEnabled; passwordWritebackEnabled = $OnPremConfigDetails.passwordWritebackEnabled; DirectoryExtensions = ($DirectoryExtensions -join ","); groupWriteBackEnabled = $OnPremConfigDetails.groupWriteBackEnabled; IdentityProviders = $IdentityProviders; cloudPasswordPolicyForPasswordSyncedUsersEnabled = $OnPremConfigDetails.cloudPasswordPolicyForPasswordSyncedUsersEnabled } }
+		$message = "Tenant basic details done"
+		Write-Log -logtext $message -logpath $logpath
+	}
+	catch {
+		$message = "Tenant basic Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
 }
-
-$message = "Tenant basic details done"
-Write-Log -logtext $message -logpath $logpath
 
 if ($TenantBasicDetail.OnPremisesSyncEnabled) {
 	$message = "Connecting to Az module as OnPrem Sync is enabled"
@@ -320,20 +367,21 @@ if ($TenantBasicDetail.OnPremisesSyncEnabled) {
 	if (Get-AzAccessToken -ErrorAction:SilentlyContinue -WarningAction:SilentlyContinue) {
 		try {
 			$null = Disconnect-AzAccount
-			#			Connect-azAccount -ErrorAction Stop
 			Connect-AzAccount -AccountId $ConnectionDetail.Account -TenantId $ConnectionDetail.TenantId -Scope CurrentUser -ErrorAction Stop
 		}
 		catch {
+			$message = $Error[0].exception.message
+			Write-Log -logtext $message -logpath $logpath
 			Write-Output "Unable to login to Az Accounts"
 		}
 	}
 	else {
 		try {
-			#Connect-azAccount -ErrorAction Stop
 			Connect-AzAccount -AccountId $ConnectionDetail.Account -TenantId $ConnectionDetail.TenantId -Scope CurrentUser -ErrorAction Stop
 		}
 		catch {
-			$Error[0]
+			$message = $Error[0].exception.message
+			Write-Log -logtext $message -logpath $logpath
 			Write-Output "Unable to login to Az Accounts"
 		}
 	}
@@ -352,7 +400,14 @@ if ($TenantBasicDetail.OnPremisesSyncEnabled) {
 	Write-Log -logtext $message -logpath $logpath
 	
 	# Find latest available Entra ID connect version
-	$VersionHistory = Invoke-RestMethod "https://raw.githubusercontent.com/MicrosoftDocs/entra-docs/main/docs/identity/hybrid/connect/reference-connect-version-history.md"
+	try {
+		$VersionHistory = Invoke-RestMethod "https://raw.githubusercontent.com/MicrosoftDocs/entra-docs/main/docs/identity/hybrid/connect/reference-connect-version-history.md"
+	}
+	catch {
+		$message = $error[0].exception.message
+		Write-Log -logtext $message -logpath $logpath		
+	}
+
 	$LatestVersion = $VersionHistory -split "`n" | Where-Object { $_ -match "^## [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" } | ForEach-Object { $_ -replace "## " } | Sort-Object | Select-Object -Last 1
 	if ($LatestVersion -notmatch "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$") {
 		Write-Output "Unable to determine latest version of Azure AD Connect"
@@ -363,38 +418,74 @@ if ($TenantBasicDetail.OnPremisesSyncEnabled) {
 	Write-Log -logtext $message -logpath $logpath
 	
 	# Check if the Azure API to for Entra ID connect health accessible
-	$PremiumCheck = Invoke-RestMethod -Uri 'https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/GetServices/PremiumCheck?serviceType=AadSyncService&skipCount=0&takeCount=50&api-version=2014-01-01' -Headers @{'Authorization' = "Bearer $azToken" }
-	$EntraIDConnectDetails = (Invoke-RestMethod -Uri "https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/$($PremiumCheck.value[0].serviceName)/servicemembers?api-version=2014-01-01" -Headers @{'Authorization' = "Bearer $azToken" }).value | ForEach-Object { [pscustomobject]@{machinename = $_.machinename; Enabled = -Not($_.disabled); version = (Invoke-RestMethod -Uri "https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/$($PremiumCheck.value[0].serviceName)/servicemembers/$($_.serviceMemberId)/serviceconfiguration?api-version=2014-01-01" -Headers @{'Authorization' = "Bearer $azToken" }).version; LatestVersionAvailable = $LatestVersion; staging = ($_.monitoringConfigurationsComputed | Where-Object { $_.key -eq "StagingMode" }).value; createdDate = [DateTime]::Parse($_.createdDate).ToString("yyyy-MM-dd HH:mm:ss"); lastReboot = [DateTime]::Parse($_.lastreboot).ToString("yyyy-MM-dd HH:mm:ss"); OsName = $_.Osname } }
+	try {
+		$PremiumCheck = Invoke-RestMethod -Uri 'https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/GetServices/PremiumCheck?serviceType=AadSyncService&skipCount=0&takeCount=50&api-version=2014-01-01' -Headers @{'Authorization' = "Bearer $azToken" }
+	}
+	catch {
+		$message = "API accessibility: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
 
-	$message = "Entra ID connect servers found: $($EntraIDConnectDetails.machinename -join ",")."
-	Write-Log -logtext $message -logpath $logpath
-	New-BaloonNotification -title "Information" -message $message
+	if ($PremiumCheck.PSObject.Properties.Count -ge 1) {
+		try {
+			$EntraIDConnectDetails = (Invoke-RestMethod -Uri "https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/$($PremiumCheck.value[0].serviceName)/servicemembers?api-version=2014-01-01" -Headers @{'Authorization' = "Bearer $azToken" }).value | ForEach-Object { [pscustomobject]@{machinename = $_.machinename; Enabled = -Not($_.disabled); version = (Invoke-RestMethod -Uri "https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/$($PremiumCheck.value[0].serviceName)/servicemembers/$($_.serviceMemberId)/serviceconfiguration?api-version=2014-01-01" -Headers @{'Authorization' = "Bearer $azToken" }).version; LatestVersionAvailable = $LatestVersion; staging = ($_.monitoringConfigurationsComputed | Where-Object { $_.key -eq "StagingMode" }).value; createdDate = [DateTime]::Parse($_.createdDate).ToString("yyyy-MM-dd HH:mm:ss"); lastReboot = [DateTime]::Parse($_.lastreboot).ToString("yyyy-MM-dd HH:mm:ss"); OsName = $_.Osname } }
+			$message = "Entra ID connect servers found: $(if($EntraIDConnectDetails){$EntraIDConnectDetails.machinename -join ","})."
+			Write-Log -logtext $message -logpath $logpath
+			New-BaloonNotification -title "Information" -message $message
+		}
+		catch {
+			$message = "Entra ID connect Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+			Write-Log -logtext $message -logpath $logpath		
+		}
+	}
 }
 
 if ($EntraLicense -ne "Entra ID Free") {
 	# Password protection details	
 	if ($ConnectionDetail.scopes -contains "Directory.Read.All" -OR $ConnectionDetail.scopes -contains "Directory.ReadWrite.All") {
 		$PasswordProtectionDetails = [PSCustomObject]@{}
-		((Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/groupSettings").value | Where-Object { $_.displayName -eq "Password Rule Settings" }).values | Where-Object { $_ } | ForEach-Object { $PasswordProtectionDetails | Add-Member -NotePropertyName $_.Name -NotePropertyValue (($_.value -split "\t") -join "`n") }
-
-		$message = "Entra ID password protection details done."
-		Write-Log -logtext $message -logpath $logpath
+		try {
+			((Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/groupSettings").value | Where-Object { $_.displayName -eq "Password Rule Settings" }).values | Where-Object { $_ } | ForEach-Object { $PasswordProtectionDetails | Add-Member -NotePropertyName $_.Name -NotePropertyValue (($_.value -split "\t") -join "`n") }
+			$message = "Entra ID password protection details done."
+			Write-Log -logtext $message -logpath $logpath
+		}
+		catch {
+			$message = "Entra ID password protection Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+			Write-Log -logtext $message -logpath $logpath		
+		}		
 	}
 }
 if ($ConnectionDetail.scopes -contains "Policy.ReadWrite.AuthenticationMethod") {
-	$EnabledAuthMethods = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy").authenticationMethodConfigurations | ForEach-Object { [pscustomobject]@{AuthMethodType = $_.Id; State = $_.state } }
+	try {
+		$EnabledAuthMethods = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy").authenticationMethodConfigurations | ForEach-Object { [pscustomobject]@{AuthMethodType = $_.Id; State = $_.state } }
+	}
+	catch {
+		$message = "Entra ID enabled auth methods Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
 }
 
 if ($ConnectionDetail.scopes -contains "Directory.Read.All" -OR $ConnectionDetail.scopes -contains "Directory.ReadWrite.All" -OR $ConnectionDetail.scopes -contains "RoleManagement.Read.All") {
 	$MonitoredPriviledgedRoles = ("Global Administrator", "Global Reader", "Security Administrator", "Privileged Authentication Administrator", "User Administrator")
-	$ActivatedRoles = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/directoryRoles").value | ForEach-Object { [pscustomobject]@{Id = $_.Id; DisplayName = $_.displayName } }
+	try {
+		$ActivatedRoles = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/directoryRoles").value | ForEach-Object { [pscustomobject]@{Id = $_.Id; DisplayName = $_.displayName } }
+	}
+	catch {
+		$message = "Entra ID activated role Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
 
 	$RoleDetail = ForEach ($privilegedRole in $MonitoredPriviledgedRoles) {	
 		$RoleID = ($ActivatedRoles | Where-Object { $_.DisplayName -eq $privilegedRole }).Id	
 		If ($privilegedRole -in $ActivatedRoles.DisplayName) {
 			$name = $privilegedRole
-			$Count = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/directoryRoles/$RoleID/members" -Headers @{ "ConsistencyLevel" = "eventual" }).value.displayname.count
-		
+			try {
+				$Count = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/directoryRoles/$RoleID/members" -Headers @{ "ConsistencyLevel" = "eventual" }).value.displayname.count
+			}
+			catch {
+				$message = "Entra ID priviledged role Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+				Write-Log -logtext $message -logpath $logpath		
+			}		
 		}
 		else {
 			$name = $privilegedRole
@@ -411,17 +502,36 @@ if ($ConnectionDetail.scopes -contains "Directory.Read.All" -OR $ConnectionDetai
 	Write-Log -logtext $message -logpath $logpath
 
 	# RBAC roles details
-	$Roles = ((Invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/roleManagement/directory/roleDefinitions").value | ForEach-Object { [pscustomobject]@{id = $_.id; isBuiltIn = $_.isBuiltIn; displayName = $_.displayName; Enabled = $_.isEnabled; rolePermissions = ($_.rolePermissions.allowedResourceActions -join "`n") } })
-	$RBACRoles = $Roles | Where-Object { $_.isBuiltIn -eq $false }
-
-	$message = "Entra ID RBAC roles details done."
-	Write-Log -logtext $message -logpath $logpath
+	try {
+		$Roles = ((Invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/roleManagement/directory/roleDefinitions").value | ForEach-Object { [pscustomobject]@{id = $_.id; isBuiltIn = $_.isBuiltIn; displayName = $_.displayName; Enabled = $_.isEnabled; rolePermissions = ($_.rolePermissions.allowedResourceActions -join "`n") } })
+		$RBACRoles = $Roles | Where-Object { $_.isBuiltIn -eq $false }
+		$message = "Entra ID RBAC roles details done."
+		Write-Log -logtext $message -logpath $logpath
+	}
+	catch {
+		$message = "Entra ID RBAC role Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}	
 }
 
 if ($EntraLicense -ne "Entra ID Free" -AND $ConnectionDetail.scopes -contains "RoleManagement.Read.All") {
 	# PIM Roles
-	$ActivePIMAssignments = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignmentSchedules?`$expand=principal").value | ForEach-Object { $roledef = $_.RoleDefinitionId; [pscustomobject]@{RoleName = ($Roles | Where-Object { $_.id -eq $roledef }).displayName; PrincipalName = $_.Principal.displayName; PrincipalType = ($_.Principal."@odata.type").replace("`#microsoft.graph.", ""); state = $_.assignmenttype; membership = $_.memberType; StartTime = $_.scheduleInfo.StartDateTime; EndTime = $_.scheduleInfo.expiration.enddatetime; type = $_.scheduleInfo.expiration.type; directoryScopeId = $_.directoryScopeId } } 
-	$ElligiblePIMAssignments = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/roleManagement/directory/roleEligibilitySchedules?`$expand=principal").value | ForEach-Object { $roledef = $_.RoleDefinitionId; [pscustomobject]@{RoleName = ($Roles | Where-Object { $_.id -eq $roledef }).displayName; PrincipalName = $_.Principal.displayName; PrincipalType = ($_.Principal."@odata.type").replace("`#microsoft.graph.", ""); state = $_.assignmenttype; membership = $_.memberType; StartTime = $_.scheduleInfo.StartDateTime; EndTime = $_.scheduleInfo.expiration.enddatetime; type = $_.scheduleInfo.expiration.type; directoryScopeId = $_.directoryScopeId } } 
+	try {
+		$ActivePIMAssignments = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignmentSchedules?`$expand=principal").value | ForEach-Object { $roledef = $_.RoleDefinitionId; [pscustomobject]@{RoleName = ($Roles | Where-Object { $_.id -eq $roledef }).displayName; PrincipalName = $_.Principal.displayName; PrincipalType = ($_.Principal."@odata.type").replace("`#microsoft.graph.", ""); state = $_.assignmenttype; membership = $_.memberType; StartTime = $_.scheduleInfo.StartDateTime; EndTime = $_.scheduleInfo.expiration.enddatetime; type = $_.scheduleInfo.expiration.type; directoryScopeId = $_.directoryScopeId } } 
+	}
+	catch {
+		$message = "Entra ID active PIM assignment Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
+
+	try {
+		$ElligiblePIMAssignments = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/roleManagement/directory/roleEligibilitySchedules?`$expand=principal").value | ForEach-Object { $roledef = $_.RoleDefinitionId; [pscustomobject]@{RoleName = ($Roles | Where-Object { $_.id -eq $roledef }).displayName; PrincipalName = $_.Principal.displayName; PrincipalType = ($_.Principal."@odata.type").replace("`#microsoft.graph.", ""); state = $_.assignmenttype; membership = $_.memberType; StartTime = $_.scheduleInfo.StartDateTime; EndTime = $_.scheduleInfo.expiration.enddatetime; type = $_.scheduleInfo.expiration.type; directoryScopeId = $_.directoryScopeId } } 
+	}
+	catch {
+		$message = "Entra ID elligible PIM assignment Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
+
 	$PIMRoles = $ActivePIMAssignments + $ElligiblePIMAssignments
 
 	$message = "Entra ID Priviledged identity management details done."
@@ -429,43 +539,82 @@ if ($EntraLicense -ne "Entra ID Free" -AND $ConnectionDetail.scopes -contains "R
 }
 
 if ($EntraLicense -eq "Entra ID P2" -AND $ConnectionDetail.scopes -contains "AccessReview.Read.All") {
-	$Accessreviews = (invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/identityGovernance/accessReviews/definitions").value | ForEach-Object { [pscustomobject]@{AccessReviewName = $_.displayName; status = $_.status; scope = if ($_.instanceEnumerationScope.query) { (invoke-mggraphrequest -uri $_.instanceEnumerationScope.query).displayName -join "," } else { (Invoke-MgGraphRequest -uri $_.scope.resourceScopes.query).DisplayName -join "," }; createdDateTime = $_.createdDateTime; lastModifiedDateTime = $_.lastModifiedDateTime; descriptionForReviewers = $_.descriptionForReviewers; descriptionForAdmins = $_.descriptionForAdmins } }
-
-	$message = "Entra ID access review details done."
-	Write-Log -logtext $message -logpath $logpath
+	try {
+		$Accessreviews = (invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/identityGovernance/accessReviews/definitions").value | ForEach-Object { [pscustomobject]@{AccessReviewName = $_.displayName; status = $_.status; scope = if ($_.instanceEnumerationScope.query) { (invoke-mggraphrequest -uri $_.instanceEnumerationScope.query).displayName -join "," } else { (Invoke-MgGraphRequest -uri $_.scope.resourceScopes.query).DisplayName -join "," }; createdDateTime = $_.createdDateTime; lastModifiedDateTime = $_.lastModifiedDateTime; descriptionForReviewers = $_.descriptionForReviewers; descriptionForAdmins = $_.descriptionForAdmins } }
+		$message = "Entra ID access review details done."
+		Write-Log -logtext $message -logpath $logpath
+	}
+	catch {
+		$message = "Entra ID access review Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}	
 }
 
 if ($ConnectionDetail.scopes -contains "Directory.Read.All" -OR $ConnectionDetail.scopes -contains "Directory.ReadWrite.All") {
 	# License summary 
-	$LicenseDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/subscribedSkus?$select=skuPartNumber,skuId,prepaidUnits,consumedUnits,servicePlans").value | ForEach-Object { [pscustomobject]@{Skuid = $_.skuId; skuPartNumber = $_.skuPartNumber; activeUnits = $_.prepaidUnits["enabled"]; consumedUnits = $_.consumedUnits; availableUnits = ($_.prepaidUnits["enabled"] - $_.consumedUnits) } }
-	
-	$message = "License summary done."
-	Write-Log -logtext $message -logpath $logpath
+	try {
+		$LicenseDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/subscribedSkus?$select=skuPartNumber,skuId,prepaidUnits,consumedUnits,servicePlans").value | ForEach-Object { [pscustomobject]@{Skuid = $_.skuId; skuPartNumber = $_.skuPartNumber; activeUnits = $_.prepaidUnits["enabled"]; consumedUnits = $_.consumedUnits; availableUnits = ($_.prepaidUnits["enabled"] - $_.consumedUnits) } }
+		$message = "License summary done."
+		Write-Log -logtext $message -logpath $logpath
+	}
+	catch {
+		$message = "Entra ID license summary: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
 }
 
 if ($ConnectionDetail.scopes -contains "Policy.Read.All") {
-	$CASPolicyDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies" ).value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; State = $_.state; createdDateTime = $_.createdDateTime; modifiedDateTime = $_.modifiedDateTime; locations = $_.conditions.locations.includeLocations -join "`n"; platforms = $_.conditions.platforms.includeplatforms -join "`n" ; clientapplicationtypes = $_.conditions.clientAppTypes -join "`n" } }
+	try {
+		$CASPolicyDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies" ).value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; State = $_.state; createdDateTime = $_.createdDateTime; modifiedDateTime = $_.modifiedDateTime; locations = $_.conditions.locations.includeLocations -join "`n"; platforms = $_.conditions.platforms.includeplatforms -join "`n" ; clientapplicationtypes = $_.conditions.clientAppTypes -join "`n" } }
+		$message = "Conditional access policies summary done."
+		Write-Log -logtext $message -logpath $logpath
+	}
+	catch {
+		$message = "Entra ID CAS policy summary: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}	
 
-	$message = "Conditional access policies summary done."
-	Write-Log -logtext $message -logpath $logpath
+	try {
+		$PasswordLessDetails = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/beta/policies/authenticationmethodspolicy/authenticationMethodConfigurations/MicrosoftAuthenticator").includetargets | ForEach-Object { [pscustomobject]@{authenticationMode = if ($_.authenticationMode -eq "any" -OR $_.authenticationMode -eq "deviceBasedPush") { "Passwordless" } else { "Password Based" }; id = $_.id; isRegistrationRequired = $_.isRegistrationRequired; targetType = $_.targetType } }\
+		$message = "Passwordless Auth details summary done."
+		Write-Log -logtext $message -logpath $logpath
 
-	$PasswordLessDetails = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/beta/policies/authenticationmethodspolicy/authenticationMethodConfigurations/MicrosoftAuthenticator").includetargets | ForEach-Object { [pscustomobject]@{authenticationMode = if ($_.authenticationMode -eq "any" -OR $_.authenticationMode -eq "deviceBasedPush") { "Passwordless" } else { "Password Based" }; id = $_.id; isRegistrationRequired = $_.isRegistrationRequired; targetType = $_.targetType } }
-
-	$message = "Passwordless Auth details summary done."
-	Write-Log -logtext $message -logpath $logpath
-
+	}
+	catch {
+		$message = "Entra ID passwordless config: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
+	
 	# Collaberation settings
-	$Collabsettings = (invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/policies/authorizationPolicy") | ForEach-Object { [pscustomobject]@{AppRegistrationForAll = $_.defaultUserRolePermissions.allowedToCreateApps; allowedToReadOtherUsers = $_.defaultUserRolePermissions.allowedToReadOtherUsers; allowedToCreateSecurityGroups = $_.defaultUserRolePermissions.allowedToCreateSecurityGroups; AllowGuestInvitesFrom = $_.allowInvitesFrom; allowedToUseSSPR = $_.allowedToUseSSPR; allowEmailVerifiedUsersToJoinOrganization = $_.allowEmailVerifiedUsersToJoinOrganization; blockMsolPowerShell = $_.blockMsolPowerShell; allowedToCreateTenants = $_.defaultUserRolePermissions.allowedToCreateTenants } }
-
-	$message = "Collaberation details summary done."
-	Write-Log -logtext $message -logpath $logpath
+	try {
+		$Collabsettings = (invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/policies/authorizationPolicy") | ForEach-Object { [pscustomobject]@{AppRegistrationForAll = $_.defaultUserRolePermissions.allowedToCreateApps; allowedToReadOtherUsers = $_.defaultUserRolePermissions.allowedToReadOtherUsers; allowedToCreateSecurityGroups = $_.defaultUserRolePermissions.allowedToCreateSecurityGroups; AllowGuestInvitesFrom = $_.allowInvitesFrom; allowedToUseSSPR = $_.allowedToUseSSPR; allowEmailVerifiedUsersToJoinOrganization = $_.allowEmailVerifiedUsersToJoinOrganization; blockMsolPowerShell = $_.blockMsolPowerShell; allowedToCreateTenants = $_.defaultUserRolePermissions.allowedToCreateTenants } }
+		$message = "Collaberation details summary done."
+		Write-Log -logtext $message -logpath $logpath
+	}
+	catch {
+		$message = "Entra ID collaberation details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}	
 }
 
 
 if ($ConnectionDetail.scopes -contains "SecurityEvents.Read.All") {
 	# Identtity Secure score recommendations
-	$Controls = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/Security/secureScoreControlProfiles?`$filter=controlCategory eq 'Identity'").value | ForEach-Object { [pscustomobject]@{controlCategory = $_.controlCategory; id = $_.id; title = $_.title; service = $_.service; userImpact = $_.userImpact; threats = ($_.threats -join ","); actionType = $_.actionType; remediation = $_.remediation; maxScore = $_.maxScore; deprecated = $_.deprecated } }
-	$Scores = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/Security/secureScores").value | ForEach-Object { [pscustomobject]@{createdDateTime = $_.createdDateTime; currentScore = $_.currentScore; maxScore = $_.maxScore; controlScores = $_.controlScores; licensedUserCount = $_.licensedUserCount; activeUserCount = $_.activeUserCount } } 
+	try {
+		$Controls = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/Security/secureScoreControlProfiles?`$filter=controlCategory eq 'Identity'").value | ForEach-Object { [pscustomobject]@{controlCategory = $_.controlCategory; id = $_.id; title = $_.title; service = $_.service; userImpact = $_.userImpact; threats = ($_.threats -join ","); actionType = $_.actionType; remediation = $_.remediation; maxScore = $_.maxScore; deprecated = $_.deprecated } }
+	}
+	catch {
+		$message = "Entra ID secure score controls: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
+
+	try {
+		$Scores = (invoke-mggraphRequest -Uri "https://graph.microsoft.com/v1.0/Security/secureScores").value | ForEach-Object { [pscustomobject]@{createdDateTime = $_.createdDateTime; currentScore = $_.currentScore; maxScore = $_.maxScore; controlScores = $_.controlScores; licensedUserCount = $_.licensedUserCount; activeUserCount = $_.activeUserCount } } 
+	}
+	catch {
+		$message = "Entra ID secure score details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+		Write-Log -logtext $message -logpath $logpath		
+	}
 
 	$SecureScoreReport = @()
 
