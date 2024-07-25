@@ -871,7 +871,7 @@ if ($expiringsecrets) {
 }
 
 if ($expiringcerts) {
-	$expiringcertSummary = $expiringcerts |select-object displayName,createdDateTime,enabled,servicePrincipalType,certdisplayname	certthumbprint	certstartdate,certenddate,certusage,certtype| ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring certificate Summary: $($TenantBasicDetail.DisplayName)</h2>"
+	$expiringcertSummary = $expiringcerts |select-object displayName,createdDateTime,enabled,servicePrincipalType,certdisplayname,certthumbprint,certstartdate,certenddate,certusage,certtype| ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring certificate Summary: $($TenantBasicDetail.DisplayName)</h2>"
 }
 
 if ($sensitiveapps) {
