@@ -143,6 +143,153 @@ function Get-PermSelection {
 	}
 }
 
+function Get-SensitiveApps {
+	[CmdletBinding()]
+	Param(
+		[Parameter(ValueFromPipeline = $true, mandatory = $false)][array]$Sensitivepermissions = ("User.Read.All", "User.ReadWrite.All", "Mail.ReadWrite", "Files.ReadWrite.All", "Calendars.ReadWrite", "Mail.Send", "User.Export.All", "Directory.Read.All", "Exchange.ManageAsApp", "Directory.ReadWrite.All", "Sites.ReadWrite.All", "Application.ReadWrite.All", "Group.ReadWrite.All", "ServicePrincipalEndPoint.ReadWrite.All", "GroupMember.ReadWrite.All", "RoleManagement.ReadWrite.Directory", "AppRoleAssignment.ReadWrite.All")
+	)
+
+	# Populate a set of hash tables with permissions used for different Office 365 management functions
+	$GraphApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=appid eq '00000003-0000-0000-c000-000000000000'").value
+	$GraphRoles = @{}
+	ForEach ($Role in $GraphApp.AppRoles) { $GraphRoles.Add([string]$Role.Id, [string]$Role.Value) }
+
+	$ExoPermissions = @{}
+	$ExoApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=appid eq '00000002-0000-0ff1-ce00-000000000000'").value
+	ForEach ($Role in $ExoApp.AppRoles) { $ExoPermissions.Add([string]$Role.Id, [string]$Role.Value) }
+
+	$O365Permissions = @{}
+	$O365API = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Office 365 Management APIs'").value
+	ForEach ($Role in $O365API.AppRoles) { $O365Permissions.Add([string]$Role.Id, [string]$Role.Value) }
+
+	$AzureADPermissions = @{}
+	$AzureAD = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Windows Azure Active Directory'").value
+	ForEach ($Role in $AzureAD.AppRoles) { $AzureADPermissions.Add([string]$Role.Id, [string]$Role.Value) }
+
+	$TeamsPermissions = @{}
+	$TeamsApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Skype and Teams Tenant Admin API'").value
+	ForEach ($Role in $TeamsApp.AppRoles) { $TeamsPermissions.Add([string]$Role.Id, [string]$Role.Value) }
+
+	$RightsManagementPermissions = @{}
+	$RightsManagementApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Microsoft Rights Management Services'").value
+	ForEach ($Role in $RightsManagementApp.AppRoles) { $RightsManagementPermissions.Add([string]$Role.Id, [string]$Role.Value) }
+
+	$Appdetails = @()
+	$sps = @()
+	$managedidentities = @()
+
+	$Sensitivepermissions = ("User.Read.All", "User.ReadWrite.All", "Mail.ReadWrite", "Files.ReadWrite.All", "Calendars.ReadWrite", "Mail.Send", "User.Export.All", "Directory.Read.All", "Exchange.ManageAsApp", "Directory.ReadWrite.All", "Sites.ReadWrite.All", "Application.ReadWrite.All", "Group.ReadWrite.All", "ServicePrincipalEndPoint.ReadWrite.All", "GroupMember.ReadWrite.All", "RoleManagement.ReadWrite.Directory", "AppRoleAssignment.ReadWrite.All")
+
+	$uri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=tags/any(t:t+eq+'WindowsAzureActiveDirectoryIntegratedApp')&`$top=999"
+	$i = 0
+	do {
+		$i++
+		
+		$response = Invoke-MgGraphRequest -Uri $uri
+		$apps = $response.value
+		$SPs += $apps
+		$uri = $response.'@odata.nextLink'
+		
+	} while ($uri)
+		
+	$Uri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=ServicePrincipalType eq 'ManagedIdentity'&`$top=999"
+	$i = 0
+	do {
+		$i++
+		
+		$response = Invoke-MgGraphRequest -Uri $uri
+		$apps = $response.value
+		$managedidentities += $apps
+		$uri = $response.'@odata.nextLink'
+		
+	} while ($uri)
+
+	$AllApps = $SPs + $managedidentities
+
+	Write-host "Total $($AllApps.count) apps collected"
+
+	$i = 0
+	$count = $AllApps.count
+
+	ForEach ($app in $AllApps) {
+		$i++
+		Write-Progress -Activity "Processing $($app.displayName)" -Status "$i of $count Complete" -PercentComplete ($i * 100 / $count)
+
+		$AppRoles = $null
+			
+		try {
+			$AppRoles = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals/$($app.id)/appRoleAssignments").value			
+		} 
+		catch {
+			Write-host "Failed to get app roles from $($app.displayName) : $($app.ServiceprincipalType)" -foregroundcolor RED
+			$AppRoles = $null
+		}		
+
+		if (($AppRoles.count) -gt 0) {
+			[array]$Permission = $Null			
+			ForEach ($Approle in $Approles) {
+				Switch ($AppRole.ResourceDisplayName) {
+					"Microsoft Graph" { 
+						$Permission += $GraphRoles[$AppRole.AppRoleId] 
+					}
+					"Office 365 Exchange Online" {
+						$Permission += $ExoPermissions[$AppRole.AppRoleId] 
+					}
+					"Office 365 Management APIs" {
+						$Permission += $O365Permissions[$AppRole.AppRoleId] 
+					}
+					"Windows Azure Active Directory" {
+						$Permission += $AzureADPermissions[$AppRole.AppRoleId] 
+					}
+					"Skype and Teams Tenant Admin API" {
+						$Permission += $TeamsPermissions[$AppRole.AppRoleId] 
+					}
+					"Microsoft Rights Management Services" {
+						$Permission += $RightsManagementPermissions[$AppRole.AppRoleId] 
+					}
+				}
+			}            
+
+			if ($Permission) {
+				$spermissions = (compare-object -ReferenceObject ($Permission | Where-Object { $_ }) -DifferenceObject $Sensitivepermissions -IncludeEqual | Where-Object { $_.SideIndicator -eq "==" }).inputobject
+			}            
+		}
+
+		$secrets = @()        
+		$secrets = (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/applications?`$filter=appid eq '$($app.appid)'&`$select=passwordCredentials,keycredentials").value        
+		$passwords = $secrets.passwordcredentials | ForEach-Object { [pscustomobject]@{displayname = $_.displayname; startdatetime = $_.startdatetime; enddatetime = $_.enddatetime } }
+		$certs = $secrets.keycredentials | ForEach-Object { [pscustomobject]@{displayname = $_.displayname; startdatetime = $_.startdatetime; enddatetime = $_.enddatetime; usage = $_.usage; type = $_.type; customKeyIdentifier = $_.customKeyIdentifier } }
+        
+		$temp = [pscustomobject]@{
+			id                        = $app.id
+			displayName               = $app.displayName
+			createdDateTime           = $app.createdDateTime
+			enabled                   = $app.accountEnabled
+			servicePrincipalType      = $app.servicePrincipalType
+			permissions               = $permission -join "`n"
+			sensitivepermissions      = $spermissions -join "`n"
+			secretdisplayname         = $passwords.displayname -join ","
+			secretstartdate           = $passwords.startdatetime -join ","
+			secretenddate             = $passwords.enddatetime -join ","
+			certdisplayname           = $certs.displayname -join ","
+			certthumbprint            = $certs.customKeyIdentifier -join ","
+			certstartdate             = $certs.startdatetime -join ","
+			certenddate               = $certs.enddatetime -join ","
+			certusage                 = $certs.usage -join ","
+			certtype                  = $certs.type -join ","
+			signInAudience            = $app.signInAudience
+			appRoleAssignmentRequired = $app.appRoleAssignmentRequired
+			appOwnerOrganizationId    = $app.appOwnerOrganizationId
+		}
+
+        
+		$Appdetails += $temp			
+	}
+
+	return $Appdetails
+}
+
+
 $logpath = "c:\temp\EntraIDDReport_$(get-date -Uformat "%Y%m%d-%H%M%S").txt"
 
 #Import PowerShell Module, install if not already installed
@@ -243,14 +390,15 @@ if (Get-MgContext) {
 	catch {		
 		$message = "MS Graph login: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
 		Write-Log -logtext $message -logpath $logpath			
-		Write-Output "Unable to login to Graph Command Line Tools"
+		Write-Output "Unable to login to Graph Command Line Tools 1"
 	}
 
 }
 else {
 	# Connect with tenant if no existing connection
 	try {
-		Connect-MGGraph -NoWelcome -scopes $requiredscopes -ErrorAction Stop
+		Write-Host "No starting connection"
+		Connect-MGGraph -NoWelcome -scopes $requiredscopes -ErrorAction Stop		
 	}
 	catch {	
 		$message = "MS Graph login: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
@@ -645,6 +793,19 @@ if ($ConnectionDetail.scopes -contains "SecurityEvents.Read.All") {
 	}
 }
 
+
+
+if ($ConnectionDetail.scopes -contains "Directory.Read.All") {
+    $apps = @()
+    $expiringsecrets = @()
+    $expiringcerts  = @()
+    $sensitiveapps = @()
+	$apps = Get-SensitiveApps 
+	$expiringsecrets = $apps |Where-Object {$_.secretenddate} | Where-Object {($_.secretenddate -split ",") | ForEach-Object {[datetime]$_ -lt (get-date).adddays(130)}}
+	$expiringcerts = $apps |Where-Object {$_.certenddate} | Where-Object {($_.certenddate -split ",") | ForEach-Object {[datetime]$_ -lt (get-date).adddays(130)}}
+	$sensitiveapps = $apps | Where-Object { $_.sensitivepermissions }
+}
+
 $message = "Creating HTML Report..."
 Write-Log -logtext $message -logpath $logpath
 New-BaloonNotification -title "Information" -message $message
@@ -704,7 +865,20 @@ If ($LicenseDetail) {
 If ($SecureScoreReport) {
 	$SecureScoreReportSummary = $SecureScoreReport | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Identity - Secure Scores Summary: $($TenantBasicDetail.DisplayName)</h2>"
 }
-$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $CollabsettingsSummary $EntraIDConnectSummary $PasswordLessSummary $PTAAgentSummary $LicenseSummary $RoleSummary $RBACRolesSummary $PIMRolesSummary $AccessreviewSummary $PasswordProtectionSummary $EnabledAuthSummary $CASSummary $SecureScoreReportSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
+
+if ($expiringsecrets) {
+	$expiringsecretSummary = $expiringsecrets | select-object displayName,createdDateTime,enabled,servicePrincipalType,secretdisplayname,secretstartdate,secretenddate	 | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring secrets Summary: $($TenantBasicDetail.DisplayName)</h2>"
+}
+
+if ($expiringcerts) {
+	$expiringcertSummary = $expiringcerts |select-object displayName,createdDateTime,enabled,servicePrincipalType,certdisplayname	certthumbprint	certstartdate,certenddate,certusage,certtype| ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring certificate Summary: $($TenantBasicDetail.DisplayName)</h2>"
+}
+
+if ($sensitiveapps) {
+	$sensitiveappSummary = $sensitiveapps | select-object displayName, createdDateTime, enabled, servicePrincipalType, permissions, sensitivepermissions | ConvertTo-Html -As Table -Fragment -PreContent "<h2>sensitive apps Summary: $($TenantBasicDetail.DisplayName)</h2>"
+}
+
+$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $CollabsettingsSummary $EntraIDConnectSummary $PasswordLessSummary $PTAAgentSummary $LicenseSummary $RoleSummary $RBACRolesSummary $PIMRolesSummary $AccessreviewSummary $PasswordProtectionSummary $EnabledAuthSummary $CASSummary $SecureScoreReportSummary $expiringsecretSummary $expiringcertSummary $sensitiveappsummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
 
 # To preseve HTMLformatting in description
 $ReportRaw = [System.Web.HttpUtility]::HtmlDecode($ReportRaw)
