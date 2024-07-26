@@ -210,7 +210,7 @@ function Get-SensitiveApps {
 	ForEach ($app in $AllApps) {
 		$i++
 		if($i%100 -eq 0){
-            		Write-Progress -Activity "Processing $($app.displayName)" -Status "$i of $count jobs submitted" -PercentComplete ($i * 100 / $count)
+            		Write-Progress -Activity "Processing $($app.displayName)" -Status "$i of $count completed" -PercentComplete ($i * 100 / $count)
         	}
 
 		$AppRoles = $null
