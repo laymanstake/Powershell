@@ -180,7 +180,7 @@ function Get-SensitiveApps {
 
 	$Sensitivepermissions = ("User.Read.All", "User.ReadWrite.All", "Mail.ReadWrite", "Files.ReadWrite.All", "Calendars.ReadWrite", "Mail.Send", "User.Export.All", "Directory.Read.All", "Exchange.ManageAsApp", "Directory.ReadWrite.All", "Sites.ReadWrite.All", "Application.ReadWrite.All", "Group.ReadWrite.All", "ServicePrincipalEndPoint.ReadWrite.All", "GroupMember.ReadWrite.All", "RoleManagement.ReadWrite.Directory", "AppRoleAssignment.ReadWrite.All")
 
-	$uri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=tags/any(t:t+eq+'WindowsAzureActiveDirectoryIntegratedApp')&`$top=999"
+	$uri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=tags/any(t:t+eq+'WindowsAzureActiveDirectoryIntegratedApp')&`$top=999&`$select=id,appid,displayname,createdDateTime,accountEnabled,servicePrincipalType,signInAudience,appRoleAssignmentRequired,appOwnerOrganizationId"
 	
 	do {
 		$response = Invoke-MgGraphRequest -Uri $uri
@@ -190,7 +190,7 @@ function Get-SensitiveApps {
 		
 	} while ($uri)
 		
-	$Uri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=ServicePrincipalType eq 'ManagedIdentity'&`$top=999"
+	$Uri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=ServicePrincipalType eq 'ManagedIdentity'&`$top=999&`$select=id,appid,displayname,createdDateTime,accountEnabled,servicePrincipalType,signInAudience,appRoleAssignmentRequired,appOwnerOrganizationId"
 	
 	do {
 		$response = Invoke-MgGraphRequest -Uri $uri
@@ -798,10 +798,11 @@ if ($ConnectionDetail.scopes -contains "Directory.Read.All") {
     $expiringsecrets = @()
     $expiringcerts  = @()
     $sensitiveapps = @()
-	$apps = Get-SensitiveApps 
-	$expiringsecrets = $apps |Where-Object {$_.secretenddate} | Where-Object {($_.secretenddate -split ",") | ForEach-Object {(Get-Date -Date $_) -lt (get-date).adddays(30)}}
-	$expiringcerts = $apps |Where-Object {$_.certenddate} | Where-Object {($_.certenddate -split ",") | ForEach-Object {(Get-Date -Date $_) -lt (get-date).adddays(30)}}
-	$sensitiveapps = $apps | Where-Object { $_.sensitivepermissions }
+    $apps = Get-SensitiveApps 
+ 	
+    $expiringsecrets = $apps | Where-Object { $_.secretenddate } | Where-Object { (($_.secretenddate -split ",") | ForEach-Object { [datetime]$_ } | Measure-Object -Maximum).maximum -lt (get-date).Adddays(30) }
+    $expiringcerts = $apps | Where-Object { $_.certenddate } | Where-Object { [datetime](($_.certenddate -split ",") | ForEach-Object { [datetime]$_ } | Measure-Object -Maximum).maximum -lt (get-date).Adddays(30) }
+    $sensitiveapps = $apps | Where-Object { $_.sensitivepermissions }
 }
 
 $message = "Creating HTML Report..."
