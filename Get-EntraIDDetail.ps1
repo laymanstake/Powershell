@@ -223,7 +223,8 @@ function Get-SensitiveApps {
 			Write-host "Failed to get app roles from $($app.displayName) : $($app.ServiceprincipalType)" -foregroundcolor RED
 			$AppRoles = $null
 		}		
-		[array]$Permission = $Null
+		$Permission = $Null
+        	$spermissions = $null
 		
   		if (($AppRoles.count) -gt 0) {		
 			ForEach ($Approle in $Approles) {
@@ -247,9 +248,8 @@ function Get-SensitiveApps {
 						$Permission += $RightsManagementPermissions[$AppRole.AppRoleId] 
 					}
 				}
-			}            
-			
-   			$spermissions = $null
+			}
+   
 			if ($Permission) {
 				$spermissions = (compare-object -ReferenceObject ($Permission | Where-Object { $_ }) -DifferenceObject $Sensitivepermissions -IncludeEqual | Where-Object { $_.SideIndicator -eq "==" }).inputobject
 			}            
