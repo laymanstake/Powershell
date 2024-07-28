@@ -223,9 +223,9 @@ function Get-SensitiveApps {
 			Write-host "Failed to get app roles from $($app.displayName) : $($app.ServiceprincipalType)" -foregroundcolor RED
 			$AppRoles = $null
 		}		
-
-		if (($AppRoles.count) -gt 0) {
-			[array]$Permission = $Null			
+		[array]$Permission = $Null
+		
+  		if (($AppRoles.count) -gt 0) {		
 			ForEach ($Approle in $Approles) {
 				Switch ($AppRole.ResourceDisplayName) {
 					"Microsoft Graph" { 
