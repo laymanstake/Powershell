@@ -202,7 +202,8 @@ function Get-SensitiveApps {
 
 	$AllApps = $SPs + $managedidentities
 
-	Write-host "Total $($AllApps.count) apps collected"
+	$message = "$(($SPs + $managedidentities).count) apps collected" 
+    	Write-Log -logtext $message -logpath $logpath
 
 	$i = 0
 	$count = $AllApps.count
