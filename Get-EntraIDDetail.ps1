@@ -248,7 +248,8 @@ function Get-SensitiveApps {
 					}
 				}
 			}            
-
+			
+   			$spermissions = $null
 			if ($Permission) {
 				$spermissions = (compare-object -ReferenceObject ($Permission | Where-Object { $_ }) -DifferenceObject $Sensitivepermissions -IncludeEqual | Where-Object { $_.SideIndicator -eq "==" }).inputobject
 			}            
