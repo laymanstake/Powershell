@@ -211,7 +211,7 @@ function Get-SensitiveApps {
 		$uri = $response.'@odata.nextLink'		
 	} while ($uri)    
 
-	$Uri = "https://graph.microsoft.com/v1.0/serviceprincipals?`$top=999&`$expand=appRoleAssignments&`$select=appId,appRoleAssignments"
+	$Uri = "https://graph.microsoft.com/v1.0/serviceprincipals?`$top=100&`$expand=appRoleAssignments&`$select=appId,appRoleAssignments"
 	do {
 		$response = Invoke-MgGraphRequest -Uri $uri
 		$apps = $response.value
@@ -229,7 +229,7 @@ function Get-SensitiveApps {
 		$Roles = $null			
 		$Roles = $approles | Where-Object { $_.appid -eq $app.appid }
 
-		$Permission = $Null
+		[array]$Permission = $Null
 		$spermissions = $null
 
 		if (($Roles.count) -gt 0) {            
