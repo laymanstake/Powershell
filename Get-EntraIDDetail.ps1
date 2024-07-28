@@ -274,15 +274,15 @@ function Get-SensitiveApps {
 			servicePrincipalType      = $app.servicePrincipalType
 			permissions               = $permission -join "`n"
 			sensitivepermissions      = $spermissions -join "`n"
-			secretdisplayname         = $passwords.displayname -join ","
-			secretstartdate           = $passwords.startdatetime -join ","
-			secretenddate             = $passwords.enddatetime -join ","
-			certdisplayname           = $certs.displayname -join ","
-			certthumbprint            = $certs.customKeyIdentifier -join ","
-			certstartdate             = $certs.startdatetime -join ","
-			certenddate               = $certs.enddatetime -join ","
-			certusage                 = $certs.usage -join ","
-			certtype                  = $certs.type -join ","
+			secretdisplayname         = $passwords.displayname -join "`n"
+			secretstartdate           = $passwords.startdatetime -join "`n"
+			secretenddate             = $passwords.enddatetime -join "`n"
+			certdisplayname           = $certs.displayname -join "`n"
+			certthumbprint            = $certs.customKeyIdentifier -join "`n"
+			certstartdate             = $certs.startdatetime -join "`n"
+			certenddate               = $certs.enddatetime -join "`n"
+			certusage                 = $certs.usage -join "`n"
+			certtype                  = $certs.type -join "`n"
 			signInAudience            = $app.signInAudience
 			appRoleAssignmentRequired = $app.appRoleAssignmentRequired
 			appOwnerOrganizationId    = $app.appOwnerOrganizationId
@@ -804,8 +804,8 @@ if ($ConnectionDetail.scopes -contains "Directory.Read.All") {
 	$sensitiveapps = @()
 	$apps = Get-SensitiveApps 
 
-	$expiringsecrets = $apps | Where-Object { $_.secretenddate } | Where-Object { (($_.secretenddate -split ",") | ForEach-Object { [datetime]$_ } | Measure-Object -Maximum).maximum -lt (get-date).Adddays(30) }
-	$expiringcerts = $apps | Where-Object { $_.certenddate } | Where-Object { [datetime](($_.certenddate -split ",") | ForEach-Object { [datetime]$_ } | Measure-Object -Maximum).maximum -lt (get-date).Adddays(30) }
+	$expiringsecrets = $apps | Where-Object { $_.secretenddate } | Where-Object { (($_.secretenddate -split "`n") | ForEach-Object { [datetime]$_ } | Measure-Object -Maximum).maximum -lt (get-date).Adddays(30) }
+	$expiringcerts = $apps | Where-Object { $_.certenddate } | Where-Object { [datetime](($_.certenddate -split "`n") | ForEach-Object { [datetime]$_ } | Measure-Object -Maximum).maximum -lt (get-date).Adddays(30) }
 	$sensitiveapps = $apps | Where-Object { $_.sensitivepermissions }
 }
 
@@ -870,15 +870,15 @@ If ($SecureScoreReport) {
 }
 
 if ($expiringsecrets) {
-	$expiringsecretSummary = $expiringsecrets | select-object displayName, createdDateTime, enabled, servicePrincipalType, secretdisplayname, secretstartdate, secretenddate	 | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring secrets Summary: $($TenantBasicDetail.DisplayName)</h2>"
+	$expiringsecretSummary = ($expiringsecrets | select-object displayName, createdDateTime, enabled, servicePrincipalType, secretdisplayname, secretstartdate, secretenddate	 | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring secrets Summary: $($TenantBasicDetail.DisplayName)</h2>")  -replace "`n", "<br>"
 }
 
 if ($expiringcerts) {
-	$expiringcertSummary = $expiringcerts | select-object displayName, createdDateTime, enabled, servicePrincipalType, certdisplayname, certthumbprint, certstartdate, certenddate, certusage, certtype | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring certificate Summary: $($TenantBasicDetail.DisplayName)</h2>"
+	$expiringcertSummary = ($expiringcerts | select-object displayName, createdDateTime, enabled, servicePrincipalType, certdisplayname, certthumbprint, certstartdate, certenddate, certusage, certtype | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring certificate Summary: $($TenantBasicDetail.DisplayName)</h2>")  -replace "`n", "<br>"
 }
 
 if ($sensitiveapps) {
-	$sensitiveappSummary = $sensitiveapps | select-object displayName, createdDateTime, enabled, servicePrincipalType, permissions, sensitivepermissions | ConvertTo-Html -As Table -Fragment -PreContent "<h2>sensitive apps Summary: $($TenantBasicDetail.DisplayName)</h2>"
+	$sensitiveappSummary = ($sensitiveapps | select-object displayName, createdDateTime, enabled, servicePrincipalType, permissions, sensitivepermissions | ConvertTo-Html -As Table -Fragment -PreContent "<h2>sensitive apps Summary: $($TenantBasicDetail.DisplayName)</h2>")  -replace "`n", "<br>"
 }
 
 $ReportRaw = ConvertTo-HTML -Body "$TenantSummary $CollabsettingsSummary $EntraIDConnectSummary $PasswordLessSummary $PTAAgentSummary $LicenseSummary $RoleSummary $RBACRolesSummary $PIMRolesSummary $AccessreviewSummary $PasswordProtectionSummary $EnabledAuthSummary $CASSummary $SecureScoreReportSummary $expiringsecretSummary $expiringcertSummary $sensitiveappsummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
