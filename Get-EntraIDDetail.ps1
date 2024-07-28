@@ -144,151 +144,151 @@ function Get-PermSelection {
 }
 
 function Get-SensitiveApps {
-    [CmdletBinding()]
-    Param(
-        [Parameter(ValueFromPipeline = $true, mandatory = $false)][array]$Sensitivepermissions = ("User.Read.All", "User.ReadWrite.All", "Mail.ReadWrite", "Files.ReadWrite.All", "Calendars.ReadWrite", "Mail.Send", "User.Export.All", "Directory.Read.All", "Exchange.ManageAsApp", "Directory.ReadWrite.All", "Sites.ReadWrite.All", "Application.ReadWrite.All", "Group.ReadWrite.All", "ServicePrincipalEndPoint.ReadWrite.All", "GroupMember.ReadWrite.All", "RoleManagement.ReadWrite.Directory", "AppRoleAssignment.ReadWrite.All")
-    )
+	[CmdletBinding()]
+	Param(
+		[Parameter(ValueFromPipeline = $true, mandatory = $false)][array]$Sensitivepermissions = ("User.Read.All", "User.ReadWrite.All", "Mail.ReadWrite", "Files.ReadWrite.All", "Calendars.ReadWrite", "Mail.Send", "User.Export.All", "Directory.Read.All", "Exchange.ManageAsApp", "Directory.ReadWrite.All", "Sites.ReadWrite.All", "Application.ReadWrite.All", "Group.ReadWrite.All", "ServicePrincipalEndPoint.ReadWrite.All", "GroupMember.ReadWrite.All", "RoleManagement.ReadWrite.Directory", "AppRoleAssignment.ReadWrite.All")
+	)
 
-    # Populate a set of hash tables with permissions used for different Office 365 management functions
-    $GraphApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=appid eq '00000003-0000-0000-c000-000000000000'").value
-    $GraphRoles = @{}
-    ForEach ($Role in $GraphApp.AppRoles) { $GraphRoles.Add([string]$Role.Id, [string]$Role.Value) }
+	# Populate a set of hash tables with permissions used for different Office 365 management functions
+	$GraphApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=appid eq '00000003-0000-0000-c000-000000000000'").value
+	$GraphRoles = @{}
+	ForEach ($Role in $GraphApp.AppRoles) { $GraphRoles.Add([string]$Role.Id, [string]$Role.Value) }
 
-    $ExoPermissions = @{}
-    $ExoApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=appid eq '00000002-0000-0ff1-ce00-000000000000'").value
-    ForEach ($Role in $ExoApp.AppRoles) { $ExoPermissions.Add([string]$Role.Id, [string]$Role.Value) }
+	$ExoPermissions = @{}
+	$ExoApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=appid eq '00000002-0000-0ff1-ce00-000000000000'").value
+	ForEach ($Role in $ExoApp.AppRoles) { $ExoPermissions.Add([string]$Role.Id, [string]$Role.Value) }
 
-    $O365Permissions = @{}
-    $O365API = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Office 365 Management APIs'").value
-    ForEach ($Role in $O365API.AppRoles) { $O365Permissions.Add([string]$Role.Id, [string]$Role.Value) }
+	$O365Permissions = @{}
+	$O365API = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Office 365 Management APIs'").value
+	ForEach ($Role in $O365API.AppRoles) { $O365Permissions.Add([string]$Role.Id, [string]$Role.Value) }
 
-    $AzureADPermissions = @{}
-    $AzureAD = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Windows Azure Active Directory'").value
-    ForEach ($Role in $AzureAD.AppRoles) { $AzureADPermissions.Add([string]$Role.Id, [string]$Role.Value) }
+	$AzureADPermissions = @{}
+	$AzureAD = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Windows Azure Active Directory'").value
+	ForEach ($Role in $AzureAD.AppRoles) { $AzureADPermissions.Add([string]$Role.Id, [string]$Role.Value) }
 
-    $TeamsPermissions = @{}
-    $TeamsApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Skype and Teams Tenant Admin API'").value
-    ForEach ($Role in $TeamsApp.AppRoles) { $TeamsPermissions.Add([string]$Role.Id, [string]$Role.Value) }
+	$TeamsPermissions = @{}
+	$TeamsApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Skype and Teams Tenant Admin API'").value
+	ForEach ($Role in $TeamsApp.AppRoles) { $TeamsPermissions.Add([string]$Role.Id, [string]$Role.Value) }
 
-    $RightsManagementPermissions = @{}
-    $RightsManagementApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Microsoft Rights Management Services'").value
-    ForEach ($Role in $RightsManagementApp.AppRoles) { $RightsManagementPermissions.Add([string]$Role.Id, [string]$Role.Value) }
+	$RightsManagementPermissions = @{}
+	$RightsManagementApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Microsoft Rights Management Services'").value
+	ForEach ($Role in $RightsManagementApp.AppRoles) { $RightsManagementPermissions.Add([string]$Role.Id, [string]$Role.Value) }
 
-    $Appdetails = @()
-    $sps = @()
-    $managedidentities = @()
-    $appcreds = @()
-    $approles = @()
+	$Appdetails = @()
+	$sps = @()
+	$managedidentities = @()
+	$appcreds = @()
+	$approles = @()
 
-    $Sensitivepermissions = ("User.Read.All", "User.ReadWrite.All", "Mail.ReadWrite", "Files.ReadWrite.All", "Calendars.ReadWrite", "Mail.Send", "User.Export.All", "Directory.Read.All", "Exchange.ManageAsApp", "Directory.ReadWrite.All", "Sites.ReadWrite.All", "Application.ReadWrite.All", "Group.ReadWrite.All", "ServicePrincipalEndPoint.ReadWrite.All", "GroupMember.ReadWrite.All", "RoleManagement.ReadWrite.Directory", "AppRoleAssignment.ReadWrite.All")
+	$Sensitivepermissions = ("User.Read.All", "User.ReadWrite.All", "Mail.ReadWrite", "Files.ReadWrite.All", "Calendars.ReadWrite", "Mail.Send", "User.Export.All", "Directory.Read.All", "Exchange.ManageAsApp", "Directory.ReadWrite.All", "Sites.ReadWrite.All", "Application.ReadWrite.All", "Group.ReadWrite.All", "ServicePrincipalEndPoint.ReadWrite.All", "GroupMember.ReadWrite.All", "RoleManagement.ReadWrite.Directory", "AppRoleAssignment.ReadWrite.All")
 
-    $uri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=tags/any(t:t+eq+'WindowsAzureActiveDirectoryIntegratedApp')&`$top=999&`$select=id,appid,displayname,createdDateTime,accountEnabled,servicePrincipalType,signInAudience,appRoleAssignmentRequired,appOwnerOrganizationId"
+	$uri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=tags/any(t:t+eq+'WindowsAzureActiveDirectoryIntegratedApp')&`$top=999&`$select=id,appid,displayname,createdDateTime,accountEnabled,servicePrincipalType,signInAudience,appRoleAssignmentRequired,appOwnerOrganizationId"
 	
-    do {
-        $response = Invoke-MgGraphRequest -Uri $uri
-        $apps = $response.value
-        $SPs += $apps
-        $uri = $response.'@odata.nextLink'		
-    } while ($uri)
+	do {
+		$response = Invoke-MgGraphRequest -Uri $uri
+		$apps = $response.value
+		$SPs += $apps
+		$uri = $response.'@odata.nextLink'		
+	} while ($uri)
 		
-    $Uri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=ServicePrincipalType eq 'ManagedIdentity'&`$top=999&`$select=id,appid,displayname,createdDateTime,accountEnabled,servicePrincipalType,signInAudience,appRoleAssignmentRequired,appOwnerOrganizationId"
+	$Uri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=ServicePrincipalType eq 'ManagedIdentity'&`$top=999&`$select=id,appid,displayname,createdDateTime,accountEnabled,servicePrincipalType,signInAudience,appRoleAssignmentRequired,appOwnerOrganizationId"
 	
-    do {
-        $response = Invoke-MgGraphRequest -Uri $uri
-        $apps = $response.value
-        $managedidentities += $apps
-        $uri = $response.'@odata.nextLink'		
-    } while ($uri)
+	do {
+		$response = Invoke-MgGraphRequest -Uri $uri
+		$apps = $response.value
+		$managedidentities += $apps
+		$uri = $response.'@odata.nextLink'		
+	} while ($uri)
 
-    $AllApps = $SPs + $managedidentities
+	$AllApps = $SPs + $managedidentities
 
-    $Uri = "https://graph.microsoft.com/v1.0/applications?`$select=appid,passwordCredentials,keycredentials&`$top=999"
-    do {
-        $response = Invoke-MgGraphRequest -Uri $uri
-        $apps = $response.value
-        $appcreds += $apps
-        $uri = $response.'@odata.nextLink'		
-    } while ($uri)    
+	$Uri = "https://graph.microsoft.com/v1.0/applications?`$select=appid,passwordCredentials,keycredentials&`$top=999"
+	do {
+		$response = Invoke-MgGraphRequest -Uri $uri
+		$apps = $response.value
+		$appcreds += $apps
+		$uri = $response.'@odata.nextLink'		
+	} while ($uri)    
 
-    $Uri = "https://graph.microsoft.com/v1.0/serviceprincipals?`$top=999&`$expand=appRoleAssignments&`$select=appId,appRoleAssignments"
-    do {
-        $response = Invoke-MgGraphRequest -Uri $uri
-        $apps = $response.value
-        $approles += $apps
-        $uri = $response.'@odata.nextLink'		
-    } while ($uri)    
+	$Uri = "https://graph.microsoft.com/v1.0/serviceprincipals?`$top=999&`$expand=appRoleAssignments&`$select=appId,appRoleAssignments"
+	do {
+		$response = Invoke-MgGraphRequest -Uri $uri
+		$apps = $response.value
+		$approles += $apps
+		$uri = $response.'@odata.nextLink'		
+	} while ($uri)    
 
-    $i = 0
-    $count = $AllApps.count
+	$i = 0
+	$count = $AllApps.count
 
-    ForEach ($app in $AllApps) {
-        $i++        
-        Write-Progress -Activity "Processing $($app.displayName)" -Status "$i of $count completed" -PercentComplete ($i * 100 / $count)        
+	ForEach ($app in $AllApps) {
+		$i++        
+		Write-Progress -Activity "Processing $($app.displayName)" -Status "$i of $count completed" -PercentComplete ($i * 100 / $count)        
 
-        $Roles = $null			
-        $Roles = $approles | Where-Object { $_.appid -eq $app.appid }
+		$Roles = $null			
+		$Roles = $approles | Where-Object { $_.appid -eq $app.appid }
 
-        $Permission = $Null
-        $spermissions = $null
+		$Permission = $Null
+		$spermissions = $null
 
-        if (($Roles.count) -gt 0) {            
-            ForEach ($Approle in $Roles.appRoleAssignments) {
-                Switch ($AppRole.ResourceDisplayName) {
-                    "Microsoft Graph" { 
-                        $Permission += $GraphRoles[$AppRole.AppRoleId] 
-                    }
-                    "Office 365 Exchange Online" {
-                        $Permission += $ExoPermissions[$AppRole.AppRoleId] 
-                    }
-                    "Office 365 Management APIs" {
-                        $Permission += $O365Permissions[$AppRole.AppRoleId]
-                    }
-                    "Windows Azure Active Directory" {
-                        $Permission += $AzureADPermissions[$AppRole.AppRoleId] 
-                    }
-                    "Skype and Teams Tenant Admin API" {
-                        $Permission += $TeamsPermissions[$AppRole.AppRoleId] 
-                    }
-                    "Microsoft Rights Management Services" {
-                        $Permission += $RightsManagementPermissions[$AppRole.AppRoleId] 
-                    }
-                }
-            }            
+		if (($Roles.count) -gt 0) {            
+			ForEach ($Approle in $Roles.appRoleAssignments) {
+				Switch ($AppRole.ResourceDisplayName) {
+					"Microsoft Graph" { 
+						$Permission += $GraphRoles[$AppRole.AppRoleId] 
+					}
+					"Office 365 Exchange Online" {
+						$Permission += $ExoPermissions[$AppRole.AppRoleId] 
+					}
+					"Office 365 Management APIs" {
+						$Permission += $O365Permissions[$AppRole.AppRoleId]
+					}
+					"Windows Azure Active Directory" {
+						$Permission += $AzureADPermissions[$AppRole.AppRoleId] 
+					}
+					"Skype and Teams Tenant Admin API" {
+						$Permission += $TeamsPermissions[$AppRole.AppRoleId] 
+					}
+					"Microsoft Rights Management Services" {
+						$Permission += $RightsManagementPermissions[$AppRole.AppRoleId] 
+					}
+				}
+			}            
 
-            if ($Permission) {
-                $spermissions = (compare-object -ReferenceObject ($Permission | Where-Object { $_ }) -DifferenceObject $Sensitivepermissions -IncludeEqual | Where-Object { $_.SideIndicator -eq "==" }).inputobject                
-            }            
-        }
+			if ($Permission) {
+				$spermissions = (compare-object -ReferenceObject ($Permission | Where-Object { $_ }) -DifferenceObject $Sensitivepermissions -IncludeEqual | Where-Object { $_.SideIndicator -eq "==" }).inputobject                
+			}            
+		}
         
-        $secrets = @()        
-        $secrets = $appcreds | Where-Object { $_.appid -eq $app.appid }
-        $passwords = $secrets.passwordcredentials | ForEach-Object { [pscustomobject]@{displayname = $_.displayname; startdatetime = $_.startdatetime; enddatetime = $_.enddatetime } }
-        $certs = $secrets.keycredentials | ForEach-Object { [pscustomobject]@{displayname = $_.displayname; startdatetime = $_.startdatetime; enddatetime = $_.enddatetime; usage = $_.usage; type = $_.type; customKeyIdentifier = $_.customKeyIdentifier } }
+		$secrets = @()        
+		$secrets = $appcreds | Where-Object { $_.appid -eq $app.appid }
+		$passwords = $secrets.passwordcredentials | ForEach-Object { [pscustomobject]@{displayname = $_.displayname; startdatetime = $_.startdatetime; enddatetime = $_.enddatetime } }
+		$certs = $secrets.keycredentials | ForEach-Object { [pscustomobject]@{displayname = $_.displayname; startdatetime = $_.startdatetime; enddatetime = $_.enddatetime; usage = $_.usage; type = $_.type; customKeyIdentifier = $_.customKeyIdentifier } }
         
-        $temp = [pscustomobject]@{
-            id                        = $app.id
-            displayName               = $app.displayName
-            createdDateTime           = $app.createdDateTime
-            enabled                   = $app.accountEnabled
-            servicePrincipalType      = $app.servicePrincipalType
-            permissions               = $permission -join "`n"
-            sensitivepermissions      = $spermissions -join "`n"
-            secretdisplayname         = $passwords.displayname -join ","
-            secretstartdate           = $passwords.startdatetime -join ","
-            secretenddate             = $passwords.enddatetime -join ","
-            certdisplayname           = $certs.displayname -join ","
-            certthumbprint            = $certs.customKeyIdentifier -join ","
-            certstartdate             = $certs.startdatetime -join ","
-            certenddate               = $certs.enddatetime -join ","
-            certusage                 = $certs.usage -join ","
-            certtype                  = $certs.type -join ","
-            signInAudience            = $app.signInAudience
-            appRoleAssignmentRequired = $app.appRoleAssignmentRequired
-            appOwnerOrganizationId    = $app.appOwnerOrganizationId
-        }        
-        $Appdetails += $temp			
-    }
-    return $Appdetails
+		$temp = [pscustomobject]@{
+			id                        = $app.id
+			displayName               = $app.displayName
+			createdDateTime           = $app.createdDateTime
+			enabled                   = $app.accountEnabled
+			servicePrincipalType      = $app.servicePrincipalType
+			permissions               = $permission -join "`n"
+			sensitivepermissions      = $spermissions -join "`n"
+			secretdisplayname         = $passwords.displayname -join ","
+			secretstartdate           = $passwords.startdatetime -join ","
+			secretenddate             = $passwords.enddatetime -join ","
+			certdisplayname           = $certs.displayname -join ","
+			certthumbprint            = $certs.customKeyIdentifier -join ","
+			certstartdate             = $certs.startdatetime -join ","
+			certenddate               = $certs.enddatetime -join ","
+			certusage                 = $certs.usage -join ","
+			certtype                  = $certs.type -join ","
+			signInAudience            = $app.signInAudience
+			appRoleAssignmentRequired = $app.appRoleAssignmentRequired
+			appOwnerOrganizationId    = $app.appOwnerOrganizationId
+		}        
+		$Appdetails += $temp			
+	}
+	return $Appdetails
 }
 
 $logpath = "c:\temp\EntraIDDReport_$(get-date -Uformat "%Y%m%d-%H%M%S").txt"
@@ -521,7 +521,7 @@ if ($TenantBasicDetail.OnPremisesSyncEnabled) {
 	if (Get-AzAccessToken -ErrorAction:SilentlyContinue -WarningAction:SilentlyContinue) {
 		try {
 			$null = Disconnect-AzAccount
-			Connect-AzAccount -AccountId $ConnectionDetail.Account -TenantId $ConnectionDetail.TenantId -Scope CurrentUser -ErrorAction Stop
+			Connect-AzAccount -AccountId $ConnectionDetail.Account -TenantId $ConnectionDetail.TenantId -Scope CurrentUser -ErrorAction Stop -WarningAction Ignore
 		}
 		catch {
 			$message = $Error[0].exception.message
@@ -531,7 +531,7 @@ if ($TenantBasicDetail.OnPremisesSyncEnabled) {
 	}
 	else {
 		try {
-			Connect-AzAccount -AccountId $ConnectionDetail.Account -TenantId $ConnectionDetail.TenantId -Scope CurrentUser -ErrorAction Stop
+			Connect-AzAccount -AccountId $ConnectionDetail.Account -TenantId $ConnectionDetail.TenantId -Scope CurrentUser -ErrorAction Stop  -WarningAction Ignore
 		}
 		catch {
 			$message = $Error[0].exception.message
@@ -797,15 +797,15 @@ if ($ConnectionDetail.scopes -contains "SecurityEvents.Read.All") {
 
 
 if ($ConnectionDetail.scopes -contains "Directory.Read.All") {
-    $apps = @()
-    $expiringsecrets = @()
-    $expiringcerts  = @()
-    $sensitiveapps = @()
-    $apps = Get-SensitiveApps 
- 	
-    $expiringsecrets = $apps | Where-Object { $_.secretenddate } | Where-Object { (($_.secretenddate -split ",") | ForEach-Object { [datetime]$_ } | Measure-Object -Maximum).maximum -lt (get-date).Adddays(30) }
-    $expiringcerts = $apps | Where-Object { $_.certenddate } | Where-Object { [datetime](($_.certenddate -split ",") | ForEach-Object { [datetime]$_ } | Measure-Object -Maximum).maximum -lt (get-date).Adddays(30) }
-    $sensitiveapps = $apps | Where-Object { $_.sensitivepermissions }
+	$apps = @()
+	$expiringsecrets = @()
+	$expiringcerts = @()
+	$sensitiveapps = @()
+	$apps = Get-SensitiveApps 
+
+	$expiringsecrets = $apps | Where-Object { $_.secretenddate } | Where-Object { (($_.secretenddate -split ",") | ForEach-Object { [datetime]$_ } | Measure-Object -Maximum).maximum -lt (get-date).Adddays(30) }
+	$expiringcerts = $apps | Where-Object { $_.certenddate } | Where-Object { [datetime](($_.certenddate -split ",") | ForEach-Object { [datetime]$_ } | Measure-Object -Maximum).maximum -lt (get-date).Adddays(30) }
+	$sensitiveapps = $apps | Where-Object { $_.sensitivepermissions }
 }
 
 $message = "Creating HTML Report..."
@@ -869,11 +869,11 @@ If ($SecureScoreReport) {
 }
 
 if ($expiringsecrets) {
-	$expiringsecretSummary = $expiringsecrets | select-object displayName,createdDateTime,enabled,servicePrincipalType,secretdisplayname,secretstartdate,secretenddate	 | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring secrets Summary: $($TenantBasicDetail.DisplayName)</h2>"
+	$expiringsecretSummary = $expiringsecrets | select-object displayName, createdDateTime, enabled, servicePrincipalType, secretdisplayname, secretstartdate, secretenddate	 | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring secrets Summary: $($TenantBasicDetail.DisplayName)</h2>"
 }
 
 if ($expiringcerts) {
-	$expiringcertSummary = $expiringcerts |select-object displayName,createdDateTime,enabled,servicePrincipalType,certdisplayname,certthumbprint,certstartdate,certenddate,certusage,certtype| ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring certificate Summary: $($TenantBasicDetail.DisplayName)</h2>"
+	$expiringcertSummary = $expiringcerts | select-object displayName, createdDateTime, enabled, servicePrincipalType, certdisplayname, certthumbprint, certstartdate, certenddate, certusage, certtype | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring certificate Summary: $($TenantBasicDetail.DisplayName)</h2>"
 }
 
 if ($sensitiveapps) {
