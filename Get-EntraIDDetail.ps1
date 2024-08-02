@@ -144,6 +144,48 @@ function Get-PermSelection {
 	}
 }
 
+# Function to parse datetime string with different cultures
+function Convert-ToDateTime {
+    param (
+        [string[]]$dateStrings
+    )
+
+	# List of cultures to test
+	$cultures = @('en-US', 'en-GB', 'fr-FR', 'de-DE', 'es-ES', 'en-IN')
+    $results = @()
+
+	if(-Not $dateStrings){
+		return $null
+	}
+
+    foreach ($dateString in $dateStrings) {
+        if ([string]::IsNullOrEmpty($dateString)) {
+            $results += $null
+            continue
+        }
+
+        $parsed = $null
+        foreach ($culture in $cultures) {
+            try {
+                $cultureInfo = [System.Globalization.CultureInfo]::GetCultureInfo($culture)
+                $parsed = [datetime]::Parse($dateString, $cultureInfo)
+                break
+            } catch {
+                # Continue to the next culture if parsing fails
+                continue
+            }
+        }
+
+        if (-NOT $parsed) {
+            throw "Unable to parse date string: $dateString"
+        }
+
+        $results += $parsed.ToString("dd-MM-yyyy HH:mm:ss")
+    }
+
+    return $results
+}
+
 function Get-SensitiveApps {
     [CmdletBinding()]
     Param(
@@ -278,12 +320,12 @@ function Get-SensitiveApps {
             permissions               = $permission -join "`n"
             sensitivepermissions      = $spermissions -join "`n"
             secretdisplayname         = $passwords.displayname -join "`n"
-            secretstartdate           = $passwords.startdatetime -join "`n"
-            secretenddate             = $passwords.enddatetime -join "`n"
+            secretstartdate           = (Convert-ToDateTime -dateStrings $passwords.startdatetime) -join "`n"
+            secretenddate             = (Convert-ToDateTime -dateStrings $passwords.enddatetime) -join "`n"
             certdisplayname           = $certs.displayname -join "`n"
             certthumbprint            = $certs.customKeyIdentifier -join "`n"
-            certstartdate             = $certs.startdatetime -join "`n"
-            certenddate               = $certs.enddatetime -join "`n"
+            certstartdate             = (Convert-ToDateTime -dateStrings $certs.startdatetime) -join "`n"
+            certenddate               = (Convert-ToDateTime -dateStrings $certs.enddatetime) -join "`n"
             certusage                 = $certs.usage -join "`n"
             certtype                  = $certs.type -join "`n"
             signInAudience            = $app.signInAudience
@@ -801,7 +843,7 @@ if ($ConnectionDetail.scopes -contains "SecurityEvents.Read.All") {
 	}
 }
 
-$threshold = 30 # number of days after which cert/secret would be expired
+$threshold = 7 # number of days after which cert/secret would be expired
 $apps = @()
 $expiringsecrets = @()
 $expiringcerts  = @()
@@ -810,8 +852,8 @@ $sensitiveapps = @()
 if ($ConnectionDetail.scopes -contains "Directory.Read.All") {
 	$apps = Get-SensitiveApps 
 
-	$expiringsecrets = $apps | Where-Object { $_.secretenddate } | Where-Object { (($_.secretenddate -split "`n") | ForEach-Object { [datetime]$_ } | Measure-Object -Maximum).maximum -lt (get-date).Adddays($threshold) }
-	$expiringcerts = $apps | Where-Object { $_.certenddate } | Where-Object { [datetime](($_.certenddate -split "`n") | ForEach-Object { [datetime]$_ } | Measure-Object -Maximum).maximum -lt (get-date).Adddays($threshold) }
+	$expiringsecrets = ($apps | Where-Object { $_.secretenddate }) | Where-Object { (($_.secretenddate -split "`n" | ForEach-Object { [datetime]::ParseExact($_, "dd-MM-yyyy HH:mm:ss", [System.Globalization.CultureInfo]::InvariantCulture) }) | Measure-Object -Maximum).maximum -lt (get-date).Adddays($threshold) }
+	$expiringcerts = ($apps | Where-Object { $_.certenddate }) | Where-Object { (($_.certenddate -split "`n" | ForEach-Object { [datetime]::ParseExact($_, "dd-MM-yyyy HH:mm:ss", [System.Globalization.CultureInfo]::InvariantCulture)}) | Measure-Object -Maximum).maximum -lt (get-date).Adddays($threshold) }
 	$sensitiveapps = $apps | Where-Object { $_.sensitivepermissions }
 }
 
