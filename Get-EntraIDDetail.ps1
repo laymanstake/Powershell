@@ -146,198 +146,199 @@ function Get-PermSelection {
 
 # Function to parse datetime string with different cultures
 function Convert-ToDateTime {
-    param (
-        [string[]]$dateStrings
-    )
+	param (
+		[string[]]$dateStrings
+	)
 
 	# List of cultures to test
 	$cultures = @('en-US', 'en-GB', 'fr-FR', 'de-DE', 'es-ES', 'en-IN')
-    $results = @()
+	$results = @()
 
-	if(-Not $dateStrings){
+	if (-Not $dateStrings) {
 		return $null
 	}
 
-    foreach ($dateString in $dateStrings) {
-        if ([string]::IsNullOrEmpty($dateString)) {
-            $results += $null
-            continue
-        }
+	foreach ($dateString in $dateStrings) {
+		if ([string]::IsNullOrEmpty($dateString)) {
+			$results += $null
+			continue
+		}
 
-        $parsed = $null
-        foreach ($culture in $cultures) {
-            try {
-                $cultureInfo = [System.Globalization.CultureInfo]::GetCultureInfo($culture)
-                $parsed = [datetime]::Parse($dateString, $cultureInfo)
-                break
-            } catch {
-                # Continue to the next culture if parsing fails
-                continue
-            }
-        }
+		$parsed = $null
+		foreach ($culture in $cultures) {
+			try {
+				$cultureInfo = [System.Globalization.CultureInfo]::GetCultureInfo($culture)
+				$parsed = [datetime]::Parse($dateString, $cultureInfo)
+				break
+			}
+			catch {
+				# Continue to the next culture if parsing fails
+				continue
+			}
+		}
 
-        if (-NOT $parsed) {
-            throw "Unable to parse date string: $dateString"
-        }
+		if (-NOT $parsed) {
+			throw "Unable to parse date string: $dateString"
+		}
 
-        $results += $parsed.ToString("dd-MM-yyyy HH:mm:ss")
-    }
+		$results += $parsed.ToString("dd-MM-yyyy HH:mm:ss")
+	}
 
-    return $results
+	return $results
 }
 
 function Get-SensitiveApps {
-    [CmdletBinding()]
-    Param(
-        [Parameter(ValueFromPipeline = $true, mandatory = $false)][array]$Sensitivepermissions = ("User.Read.All", "User.ReadWrite.All", "Mail.ReadWrite", "Files.ReadWrite.All", "Calendars.ReadWrite", "Mail.Send", "User.Export.All", "Directory.Read.All", "Exchange.ManageAsApp", "Directory.ReadWrite.All", "Sites.ReadWrite.All", "Application.ReadWrite.All", "Group.ReadWrite.All", "ServicePrincipalEndPoint.ReadWrite.All", "GroupMember.ReadWrite.All", "RoleManagement.ReadWrite.Directory", "AppRoleAssignment.ReadWrite.All")
-    )
+	[CmdletBinding()]
+	Param(
+		[Parameter(ValueFromPipeline = $true, mandatory = $false)][array]$Sensitivepermissions = ("User.Read.All", "User.ReadWrite.All", "Mail.ReadWrite", "Files.ReadWrite.All", "Calendars.ReadWrite", "Mail.Send", "User.Export.All", "Directory.Read.All", "Exchange.ManageAsApp", "Directory.ReadWrite.All", "Sites.ReadWrite.All", "Application.ReadWrite.All", "Group.ReadWrite.All", "ServicePrincipalEndPoint.ReadWrite.All", "GroupMember.ReadWrite.All", "RoleManagement.ReadWrite.Directory", "AppRoleAssignment.ReadWrite.All")
+	)
 
-    # Populate a set of hash tables with permissions used for different Office 365 management functions
-    $GraphApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=appid eq '00000003-0000-0000-c000-000000000000'").value
-    $GraphRoles = @{}
-    ForEach ($Role in $GraphApp.AppRoles) { $GraphRoles.Add([string]$Role.Id, [string]$Role.Value) }
+	# Populate a set of hash tables with permissions used for different Office 365 management functions
+	$GraphApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=appid eq '00000003-0000-0000-c000-000000000000'").value
+	$GraphRoles = @{}
+	ForEach ($Role in $GraphApp.AppRoles) { $GraphRoles.Add([string]$Role.Id, [string]$Role.Value) }
 
-    $ExoPermissions = @{}
-    $ExoApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=appid eq '00000002-0000-0ff1-ce00-000000000000'").value
-    ForEach ($Role in $ExoApp.AppRoles) { $ExoPermissions.Add([string]$Role.Id, [string]$Role.Value) }
+	$ExoPermissions = @{}
+	$ExoApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=appid eq '00000002-0000-0ff1-ce00-000000000000'").value
+	ForEach ($Role in $ExoApp.AppRoles) { $ExoPermissions.Add([string]$Role.Id, [string]$Role.Value) }
 
-    $O365Permissions = @{}
-    $O365API = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Office 365 Management APIs'").value
-    ForEach ($Role in $O365API.AppRoles) { $O365Permissions.Add([string]$Role.Id, [string]$Role.Value) }
+	$O365Permissions = @{}
+	$O365API = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Office 365 Management APIs'").value
+	ForEach ($Role in $O365API.AppRoles) { $O365Permissions.Add([string]$Role.Id, [string]$Role.Value) }
 
-    $AzureADPermissions = @{}
-    $AzureAD = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Windows Azure Active Directory'").value
-    ForEach ($Role in $AzureAD.AppRoles) { $AzureADPermissions.Add([string]$Role.Id, [string]$Role.Value) }
+	$AzureADPermissions = @{}
+	$AzureAD = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Windows Azure Active Directory'").value
+	ForEach ($Role in $AzureAD.AppRoles) { $AzureADPermissions.Add([string]$Role.Id, [string]$Role.Value) }
 
-    $TeamsPermissions = @{}
-    $TeamsApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Skype and Teams Tenant Admin API'").value
-    ForEach ($Role in $TeamsApp.AppRoles) { $TeamsPermissions.Add([string]$Role.Id, [string]$Role.Value) }
+	$TeamsPermissions = @{}
+	$TeamsApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Skype and Teams Tenant Admin API'").value
+	ForEach ($Role in $TeamsApp.AppRoles) { $TeamsPermissions.Add([string]$Role.Id, [string]$Role.Value) }
 
-    $RightsManagementPermissions = @{}
-    $RightsManagementApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Microsoft Rights Management Services'").value
-    ForEach ($Role in $RightsManagementApp.AppRoles) { $RightsManagementPermissions.Add([string]$Role.Id, [string]$Role.Value) }
+	$RightsManagementPermissions = @{}
+	$RightsManagementApp = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/serviceprincipals?`$filter=DisplayName eq 'Microsoft Rights Management Services'").value
+	ForEach ($Role in $RightsManagementApp.AppRoles) { $RightsManagementPermissions.Add([string]$Role.Id, [string]$Role.Value) }
 
-    $Appdetails = @()
-    $sps = @()
-    $managedidentities = @()
-    $appcreds = @()
-    $approles = @()
+	$Appdetails = @()
+	$sps = @()
+	$managedidentities = @()
+	$appcreds = @()
+	$approles = @()
 
-    $Sensitivepermissions = ("User.Read.All", "User.ReadWrite.All", "Mail.ReadWrite", "Files.ReadWrite.All", "Calendars.ReadWrite", "Mail.Send", "User.Export.All", "Directory.Read.All", "Exchange.ManageAsApp", "Directory.ReadWrite.All", "Sites.ReadWrite.All", "Application.ReadWrite.All", "Group.ReadWrite.All", "ServicePrincipalEndPoint.ReadWrite.All", "GroupMember.ReadWrite.All", "RoleManagement.ReadWrite.Directory", "AppRoleAssignment.ReadWrite.All")
+	$Sensitivepermissions = ("User.Read.All", "User.ReadWrite.All", "Mail.ReadWrite", "Files.ReadWrite.All", "Calendars.ReadWrite", "Mail.Send", "User.Export.All", "Directory.Read.All", "Exchange.ManageAsApp", "Directory.ReadWrite.All", "Sites.ReadWrite.All", "Application.ReadWrite.All", "Group.ReadWrite.All", "ServicePrincipalEndPoint.ReadWrite.All", "GroupMember.ReadWrite.All", "RoleManagement.ReadWrite.Directory", "AppRoleAssignment.ReadWrite.All")
 
-    $uri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=tags/any(t:t+eq+'WindowsAzureActiveDirectoryIntegratedApp')&`$top=999&`$select=id,appid,displayname,createdDateTime,accountEnabled,servicePrincipalType,signInAudience,appRoleAssignmentRequired,appOwnerOrganizationId"
+	$uri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=tags/any(t:t+eq+'WindowsAzureActiveDirectoryIntegratedApp')&`$top=999&`$select=id,appid,displayname,createdDateTime,accountEnabled,servicePrincipalType,signInAudience,appRoleAssignmentRequired,appOwnerOrganizationId"
 	
-    do {
-        $response = Invoke-MgGraphRequest -Uri $uri
-        $apps = $response.value
-        $SPs += $apps
-        $uri = $response.'@odata.nextLink'
+	do {
+		$response = Invoke-MgGraphRequest -Uri $uri
+		$apps = $response.value
+		$SPs += $apps
+		$uri = $response.'@odata.nextLink'
 		
-    } while ($uri)
+	} while ($uri)
 		
-    $Uri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=ServicePrincipalType eq 'ManagedIdentity'&`$top=999&`$select=id,appid,displayname,createdDateTime,accountEnabled,servicePrincipalType,signInAudience,appRoleAssignmentRequired,appOwnerOrganizationId"
+	$Uri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=ServicePrincipalType eq 'ManagedIdentity'&`$top=999&`$select=id,appid,displayname,createdDateTime,accountEnabled,servicePrincipalType,signInAudience,appRoleAssignmentRequired,appOwnerOrganizationId"
 	
-    do {
-        $response = Invoke-MgGraphRequest -Uri $uri
-        $apps = $response.value
-        $managedidentities += $apps
-        $uri = $response.'@odata.nextLink'
+	do {
+		$response = Invoke-MgGraphRequest -Uri $uri
+		$apps = $response.value
+		$managedidentities += $apps
+		$uri = $response.'@odata.nextLink'
 		
-    } while ($uri)
+	} while ($uri)
 
-    $AllApps = $SPs + $managedidentities
+	$AllApps = $SPs + $managedidentities
 
-    $Uri = "https://graph.microsoft.com/v1.0/applications?`$select=appid,passwordCredentials,keycredentials&`$top=999"
-    do {
-        $response = Invoke-MgGraphRequest -Uri $uri
-        $apps = $response.value
-        $appcreds += $apps
-        $uri = $response.'@odata.nextLink'
+	$Uri = "https://graph.microsoft.com/v1.0/applications?`$select=appid,passwordCredentials,keycredentials&`$top=999"
+	do {
+		$response = Invoke-MgGraphRequest -Uri $uri
+		$apps = $response.value
+		$appcreds += $apps
+		$uri = $response.'@odata.nextLink'
 		
-    } while ($uri)    
+	} while ($uri)    
 
-    $Uri = "https://graph.microsoft.com/v1.0/serviceprincipals?`$top=999&`$expand=appRoleAssignments&`$select=appId,appRoleAssignments"
-    do {
-        $response = Invoke-MgGraphRequest -Uri $uri
-        $apps = $response.value
-        $approles += $apps
-        $uri = $response.'@odata.nextLink'		
-    } while ($uri)    
+	$Uri = "https://graph.microsoft.com/v1.0/serviceprincipals?`$top=999&`$expand=appRoleAssignments&`$select=appId,appRoleAssignments"
+	do {
+		$response = Invoke-MgGraphRequest -Uri $uri
+		$apps = $response.value
+		$approles += $apps
+		$uri = $response.'@odata.nextLink'		
+	} while ($uri)    
 
-    $i = 0
-    $count = $AllApps.count
+	$i = 0
+	$count = $AllApps.count
 
-    ForEach ($app in $AllApps) {
-        $i++        
-        Write-Progress -Activity "Processing $($app.displayName)" -Status "$i of $count completed" -PercentComplete ($i * 100 / $count)        
+	ForEach ($app in $AllApps) {
+		$i++        
+		Write-Progress -Activity "Processing $($app.displayName)" -Status "$i of $count completed" -PercentComplete ($i * 100 / $count)        
 
-        $Roles = $null			
-        $Roles = $approles | Where-Object { $_.appid -eq $app.appid }
+		$Roles = $null			
+		$Roles = $approles | Where-Object { $_.appid -eq $app.appid }
 
-        [array]$Permission = $Null
-        $spermissions = $null
+		[array]$Permission = $Null
+		$spermissions = $null
 
-        if (($Roles.count) -gt 0) {            
-            ForEach ($Approle in $Roles.appRoleAssignments) {
-                Switch ($AppRole.ResourceDisplayName) {
-                    "Microsoft Graph" { 
-                        $Permission += $GraphRoles[$AppRole.AppRoleId] 
-                    }
-                    "Office 365 Exchange Online" {
-                        $Permission += $ExoPermissions[$AppRole.AppRoleId] 
-                    }
-                    "Office 365 Management APIs" {
-                        $Permission += $O365Permissions[$AppRole.AppRoleId]
-                    }
-                    "Windows Azure Active Directory" {
-                        $Permission += $AzureADPermissions[$AppRole.AppRoleId] 
-                    }
-                    "Skype and Teams Tenant Admin API" {
-                        $Permission += $TeamsPermissions[$AppRole.AppRoleId] 
-                    }
-                    "Microsoft Rights Management Services" {
-                        $Permission += $RightsManagementPermissions[$AppRole.AppRoleId] 
-                    }
-                }
-            }            
+		if (($Roles.count) -gt 0) {            
+			ForEach ($Approle in $Roles.appRoleAssignments) {
+				Switch ($AppRole.ResourceDisplayName) {
+					"Microsoft Graph" { 
+						$Permission += $GraphRoles[$AppRole.AppRoleId] 
+					}
+					"Office 365 Exchange Online" {
+						$Permission += $ExoPermissions[$AppRole.AppRoleId] 
+					}
+					"Office 365 Management APIs" {
+						$Permission += $O365Permissions[$AppRole.AppRoleId]
+					}
+					"Windows Azure Active Directory" {
+						$Permission += $AzureADPermissions[$AppRole.AppRoleId] 
+					}
+					"Skype and Teams Tenant Admin API" {
+						$Permission += $TeamsPermissions[$AppRole.AppRoleId] 
+					}
+					"Microsoft Rights Management Services" {
+						$Permission += $RightsManagementPermissions[$AppRole.AppRoleId] 
+					}
+				}
+			}            
 
-            if ($Permission) {
-                $spermissions = (compare-object -ReferenceObject ($Permission | Where-Object { $_ }) -DifferenceObject $Sensitivepermissions -IncludeEqual | Where-Object { $_.SideIndicator -eq "==" }).inputobject                
-            }            
-        }
+			if ($Permission) {
+				$spermissions = (compare-object -ReferenceObject ($Permission | Where-Object { $_ }) -DifferenceObject $Sensitivepermissions -IncludeEqual | Where-Object { $_.SideIndicator -eq "==" }).inputobject                
+			}            
+		}
         
-        $secrets = @()        
-        $secrets = $appcreds | Where-Object { $_.appid -eq $app.appid }
-        $passwords = $secrets.passwordcredentials | ForEach-Object { [pscustomobject]@{displayname = $_.displayname; startdatetime = $_.startdatetime; enddatetime = $_.enddatetime } }
-        $certs = $secrets.keycredentials | ForEach-Object { [pscustomobject]@{displayname = $_.displayname; startdatetime = $_.startdatetime; enddatetime = $_.enddatetime; usage = $_.usage; type = $_.type; customKeyIdentifier = $_.customKeyIdentifier } }
+		$secrets = @()        
+		$secrets = $appcreds | Where-Object { $_.appid -eq $app.appid }
+		$passwords = $secrets.passwordcredentials | ForEach-Object { [pscustomobject]@{displayname = $_.displayname; startdatetime = $_.startdatetime; enddatetime = $_.enddatetime } }
+		$certs = $secrets.keycredentials | ForEach-Object { [pscustomobject]@{displayname = $_.displayname; startdatetime = $_.startdatetime; enddatetime = $_.enddatetime; usage = $_.usage; type = $_.type; customKeyIdentifier = $_.customKeyIdentifier } }
         
-        $temp = [pscustomobject]@{
-            id                        = $app.id
-            displayName               = $app.displayName
-            createdDateTime           = $app.createdDateTime
-            enabled                   = $app.accountEnabled
-            servicePrincipalType      = $app.servicePrincipalType
-            permissions               = $permission -join "`n"
-            sensitivepermissions      = $spermissions -join "`n"
-            secretdisplayname         = $passwords.displayname -join "`n"
-            secretstartdate           = (Convert-ToDateTime -dateStrings $passwords.startdatetime) -join "`n"
-            secretenddate             = (Convert-ToDateTime -dateStrings $passwords.enddatetime) -join "`n"
-            certdisplayname           = $certs.displayname -join "`n"
-            certthumbprint            = $certs.customKeyIdentifier -join "`n"
-            certstartdate             = (Convert-ToDateTime -dateStrings $certs.startdatetime) -join "`n"
-            certenddate               = (Convert-ToDateTime -dateStrings $certs.enddatetime) -join "`n"
-            certusage                 = $certs.usage -join "`n"
-            certtype                  = $certs.type -join "`n"
-            signInAudience            = $app.signInAudience
-            appRoleAssignmentRequired = $app.appRoleAssignmentRequired
-            appOwnerOrganizationId    = $app.appOwnerOrganizationId
-        }
+		$temp = [pscustomobject]@{
+			id                        = $app.id
+			displayName               = $app.displayName
+			createdDateTime           = $app.createdDateTime
+			enabled                   = $app.accountEnabled
+			servicePrincipalType      = $app.servicePrincipalType
+			permissions               = $permission -join "`n"
+			sensitivepermissions      = $spermissions -join "`n"
+			secretdisplayname         = $passwords.displayname -join "`n"
+			secretstartdate           = (Convert-ToDateTime -dateStrings $passwords.startdatetime) -join "`n"
+			secretenddate             = (Convert-ToDateTime -dateStrings $passwords.enddatetime) -join "`n"
+			certdisplayname           = $certs.displayname -join "`n"
+			certthumbprint            = $certs.customKeyIdentifier -join "`n"
+			certstartdate             = (Convert-ToDateTime -dateStrings $certs.startdatetime) -join "`n"
+			certenddate               = (Convert-ToDateTime -dateStrings $certs.enddatetime) -join "`n"
+			certusage                 = $certs.usage -join "`n"
+			certtype                  = $certs.type -join "`n"
+			signInAudience            = $app.signInAudience
+			appRoleAssignmentRequired = $app.appRoleAssignmentRequired
+			appOwnerOrganizationId    = $app.appOwnerOrganizationId
+		}
 
         
-        $Appdetails += $temp			
-    }
+		$Appdetails += $temp			
+	}
 
-    return $Appdetails
+	return $Appdetails
 }
 
 $logpath = "c:\temp\EntraIDDReport_$(get-date -Uformat "%Y%m%d-%H%M%S").txt"
@@ -458,11 +459,61 @@ else {
 	}
 }
 
+$ConnectionDetail = Get-MgContext | Select-Object Account, TenantId, Environment, Scopes
+
 $message = "Microsoft Graph connection done"
 Write-Log -logtext $message -logpath $logpath
 New-BaloonNotification -title "Information" -message $message
 
-$ConnectionDetail = Get-MgContext | Select-Object Account, TenantId, Environment, Scopes
+$message = "Connecting to Az module"
+Write-Log -logtext $message -logpath $logpath
+New-BaloonNotification -title "Information" -message $message
+
+$null = Disconnect-AzAccount
+
+if (Get-AzAccessToken -ErrorAction:SilentlyContinue -WarningAction:SilentlyContinue) {
+	try {
+		$null = Disconnect-AzAccount
+		Connect-AzAccount -AccountId $ConnectionDetail.Account -TenantId $ConnectionDetail.TenantId -Scope CurrentUser -ErrorAction Stop -WarningAction Ignore
+	}
+	catch {
+		$message = $Error[0].exception.message
+		Write-Log -logtext $message -logpath $logpath
+		Write-Output "Unable to login to Az Accounts"
+	}
+}
+else {
+	try {
+		Connect-AzAccount -AccountId $ConnectionDetail.Account -TenantId $ConnectionDetail.TenantId -Scope CurrentUser -ErrorAction Stop  -WarningAction Ignore
+	}
+	catch {
+		$message = $Error[0].exception.message
+		Write-Log -logtext $message -logpath $logpath
+		Write-Output "Unable to login to Az Accounts"
+	}
+}
+
+# Workaround to hit undocumented api
+$resource = '74658136-14ec-4630-ad9b-26e160ff0fc6'
+
+# Keeping Az token for using later on
+$null = Update-AzConfig -DisplayBreakingChangeWarning $false 
+if ((get-module -List Az.Accounts).version.major -ge 3) {
+	$encryptedToken = (Get-AzAccessToken -AsSecureString -ErrorAction Stop).token
+	$azToken = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($encryptedToken))
+	
+	$encryptedtoken1 = (Get-AzAccessToken -ResourceUrl $resource -TenantId $ConnectionDetail.TenantId -AsSecureString -ErrorAction Stop).token
+	$Token1 = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($encryptedtoken1))
+}
+else {
+	$azToken = (Get-AzAccessToken -ErrorAction Stop).token
+	$token1 = (Get-AzAccessToken -ResourceUrl $resource -TenantId $ConnectionDetail.TenantId).token
+}
+
+$message = "Connection to Az module completed."
+Write-Log -logtext $message -logpath $logpath
+
+
 
 if ($ConnectionDetail.scopes -contains "Directory.Read.All" -OR $ConnectionDetail.scopes -contains "Directory.ReadWrite.All") {
 	try {
@@ -516,7 +567,7 @@ if ($ConnectionDetail.scopes -contains "OnPremDirectorySynchronization.Read.All"
 		$message = "Onprem config Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
 		Write-Log -logtext $message -logpath $logpath		
 	}
-	$PHSEnabled = $OnPremConfigDetails.PasswordHashSync
+	#$PHSEnabled = $OnPremConfigDetails.PasswordHashSync
 }
 # Pass through authentication details
 if ($ConnectionDetail.scopes -contains "Directory.ReadWrite.All") {
@@ -550,9 +601,25 @@ if ($ConnectionDetail.scopes -contains "Policy.Read.All") {
 	}
 }
 
+try {
+	$tenantsetting = Invoke-RestMethod 'https://main.iam.ad.ext.azure.com/api/Directories/Properties' -Headers @{Authorization = "Bearer $($token1)"; "x-ms-client-request-id" = [guid]::NewGuid().ToString(); "x-ms-client-session-id" = [guid]::NewGuid().ToString() } | Select-Object @{l = "AdminPortalAccess"; e = { if ($_.restrictNonAdminUsers) { "restrictNonAdminUsers" } else { "allusersallowed" } } }, @{l = "LinkedInEnabled"; e = { switch ($_.enableLinkedInAppFamily) { 1: { "False" }; 0 { "EnabledforAll" }; 4 { "SelectGroupOnly" } } } }
+}
+catch {
+	$message = "Tenant additional details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+	Write-Log -logtext $message -logpath $logpath		
+}
+try {
+	$ptasss = Invoke-RestMethod 'https://main.iam.ad.ext.azure.com/api/Directories/ADConnectStatus' -Headers @{Authorization = "Bearer $($token1)"; "x-ms-client-request-id" = [guid]::NewGuid().ToString(); "x-ms-client-session-id" = [guid]::NewGuid().ToString() } | Select-Object @{l = "PTA"; e = { $_.passThroughAuthenticationEnabled } }, @{l = "seamlessSingleSign"; e = { $_.seamlessSingleSignOnEnabled } }
+	$phs = Invoke-RestMethod 'https://main.iam.ad.ext.azure.com/api/Directories/GetPasswordSyncStatus' -Headers @{Authorization = "Bearer $($token1)"; "x-ms-client-request-id" = [guid]::NewGuid().ToString(); "x-ms-client-session-id" = [guid]::NewGuid().ToString() } 
+}
+catch {
+	$message = "PTA/PHS/Seamless Signon details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+	Write-Log -logtext $message -logpath $logpath		
+}
+
 if ($ConnectionDetail.scopes -contains "Directory.Read.All" -OR $ConnectionDetail.scopes -contains "Directory.ReadWrite.All") {
 	try {
-		$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; createdDateTime = $_.createdDateTime; countryLetterCode = $_.countryLetterCode; TenantID = $_.Id; OnPremisesSyncEnabled = $_.OnPremisesSyncEnabled; OnPremisesLastSyncDateTime = $_.OnPremisesLastSyncDateTime; TenantType = $_.TenantType; EntraID = $EntraLicense; Domain = (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "`n"; SecurityDefaults = $SecurityDefaults ; PTAEnbled = $PTAEnabled; PHSEnabled = $PHSEnabled; passwordWritebackEnabled = $OnPremConfigDetails.passwordWritebackEnabled; DirectoryExtensions = ($DirectoryExtensions -join ","); groupWriteBackEnabled = $OnPremConfigDetails.groupWriteBackEnabled; IdentityProviders = $IdentityProviders; cloudPasswordPolicyForPasswordSyncedUsersEnabled = $OnPremConfigDetails.cloudPasswordPolicyForPasswordSyncedUsersEnabled } }
+		$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; createdDateTime = $_.createdDateTime; countryLetterCode = $_.countryLetterCode; TenantID = $_.Id; OnPremisesSyncEnabled = $_.OnPremisesSyncEnabled; OnPremisesLastSyncDateTime = $_.OnPremisesLastSyncDateTime; TenantType = $_.TenantType; EntraID = $EntraLicense; Domain = (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "`n"; SecurityDefaults = $SecurityDefaults ; PTAEnbled = $ptasss.pta; PHSEnabled = $phs; SeamlessSignOn = $ptasss.seamlessSingleSign; passwordWritebackEnabled = $OnPremConfigDetails.passwordWritebackEnabled; DirectoryExtensions = ($DirectoryExtensions -join ","); groupWriteBackEnabled = $OnPremConfigDetails.groupWriteBackEnabled; IdentityProviders = $IdentityProviders; cloudPasswordPolicyForPasswordSyncedUsersEnabled = $OnPremConfigDetails.cloudPasswordPolicyForPasswordSyncedUsersEnabled; AdminPortalAccess = $tenantsetting.AdminPortalAccess ; LinkedInEnabled = $tenantsetting.LinkedInEnabled } }
 		$message = "Tenant basic details done"
 		Write-Log -logtext $message -logpath $logpath
 	}
@@ -562,84 +629,43 @@ if ($ConnectionDetail.scopes -contains "Directory.Read.All" -OR $ConnectionDetai
 	}
 }
 
-if ($TenantBasicDetail.OnPremisesSyncEnabled) {
-	$message = "Connecting to Az module as OnPrem Sync is enabled"
-	Write-Log -logtext $message -logpath $logpath
-	New-BaloonNotification -title "Information" -message $message
+# Find latest available Entra ID connect version
+try {
+	$VersionHistory = Invoke-RestMethod "https://raw.githubusercontent.com/MicrosoftDocs/entra-docs/main/docs/identity/hybrid/connect/reference-connect-version-history.md"
+}
+catch {
+	$message = $error[0].exception.message
+	Write-Log -logtext $message -logpath $logpath		
+}
 
-	if (Get-AzAccessToken -ErrorAction:SilentlyContinue -WarningAction:SilentlyContinue) {
-		try {
-			$null = Disconnect-AzAccount
-			Connect-AzAccount -AccountId $ConnectionDetail.Account -TenantId $ConnectionDetail.TenantId -Scope CurrentUser -ErrorAction Stop -WarningAction Ignore
-		}
-		catch {
-			$message = $Error[0].exception.message
-			Write-Log -logtext $message -logpath $logpath
-			Write-Output "Unable to login to Az Accounts"
-		}
-	}
-	else {
-		try {
-			Connect-AzAccount -AccountId $ConnectionDetail.Account -TenantId $ConnectionDetail.TenantId -Scope CurrentUser -ErrorAction Stop  -WarningAction Ignore
-		}
-		catch {
-			$message = $Error[0].exception.message
-			Write-Log -logtext $message -logpath $logpath
-			Write-Output "Unable to login to Az Accounts"
-		}
-	}
+$LatestVersion = $VersionHistory -split "`n" | Where-Object { $_ -match "^## [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" } | ForEach-Object { $_ -replace "## " } | Sort-Object | Select-Object -Last 1
+if ($LatestVersion -notmatch "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$") {
+	Write-Output "Unable to determine latest version of Azure AD Connect"
+}
+$LatestVersion = $LatestVersion.ToString()
 
-	# Keeping Az token for using later on
-	$null = Update-AzConfig -DisplayBreakingChangeWarning $false 
-	if ((get-module -List Az.Accounts).version.major -ge 3) {
-		$encryptedToken = (Get-AzAccessToken -AsSecureString -ErrorAction Stop).token
-		$azToken = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($encryptedToken))
-	}
-	else {
-		$azToken = (Get-AzAccessToken -ErrorAction Stop).token
-	}
+$message = "Latest version for Entra ID connect found from GitHub as $LatestVersion."
+Write-Log -logtext $message -logpath $logpath
 
-	$message = "Connection to Az module completed."
-	Write-Log -logtext $message -logpath $logpath
-	
-	# Find latest available Entra ID connect version
+# Check if the Azure API to for Entra ID connect health accessible
+try {
+	$PremiumCheck = Invoke-RestMethod -Uri 'https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/GetServices/PremiumCheck?serviceType=AadSyncService&skipCount=0&takeCount=50&api-version=2014-01-01' -Headers @{'Authorization' = "Bearer $azToken" }
+}
+catch {
+	$message = "API accessibility: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+	Write-Log -logtext $message -logpath $logpath		
+}
+
+if ($PremiumCheck.PSObject.Properties.Count -ge 1) {
 	try {
-		$VersionHistory = Invoke-RestMethod "https://raw.githubusercontent.com/MicrosoftDocs/entra-docs/main/docs/identity/hybrid/connect/reference-connect-version-history.md"
+		$EntraIDConnectDetails = (Invoke-RestMethod -Uri "https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/$($PremiumCheck.value[0].serviceName)/servicemembers?api-version=2014-01-01" -Headers @{'Authorization' = "Bearer $azToken" }).value | ForEach-Object { [pscustomobject]@{machinename = $_.machinename; Enabled = -Not($_.disabled); version = (Invoke-RestMethod -Uri "https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/$($PremiumCheck.value[0].serviceName)/servicemembers/$($_.serviceMemberId)/serviceconfiguration?api-version=2014-01-01" -Headers @{'Authorization' = "Bearer $azToken" }).version; LatestVersionAvailable = $LatestVersion; staging = ($_.monitoringConfigurationsComputed | Where-Object { $_.key -eq "StagingMode" }).value; createdDate = [DateTime]::Parse($_.createdDate).ToString("yyyy-MM-dd HH:mm:ss"); lastReboot = [DateTime]::Parse($_.lastreboot).ToString("yyyy-MM-dd HH:mm:ss"); OsName = $_.Osname } }
+		$message = "Entra ID connect servers found: $(if($EntraIDConnectDetails){$EntraIDConnectDetails.machinename -join ","})."
+		Write-Log -logtext $message -logpath $logpath
+		New-BaloonNotification -title "Information" -message $message
 	}
 	catch {
-		$message = $error[0].exception.message
+		$message = "Entra ID connect Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
 		Write-Log -logtext $message -logpath $logpath		
-	}
-
-	$LatestVersion = $VersionHistory -split "`n" | Where-Object { $_ -match "^## [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" } | ForEach-Object { $_ -replace "## " } | Sort-Object | Select-Object -Last 1
-	if ($LatestVersion -notmatch "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$") {
-		Write-Output "Unable to determine latest version of Azure AD Connect"
-	}
-	$LatestVersion = $LatestVersion.ToString()
-
-	$message = "Latest version for Entra ID connect found from GitHub as $LatestVersion."
-	Write-Log -logtext $message -logpath $logpath
-	
-	# Check if the Azure API to for Entra ID connect health accessible
-	try {
-		$PremiumCheck = Invoke-RestMethod -Uri 'https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/GetServices/PremiumCheck?serviceType=AadSyncService&skipCount=0&takeCount=50&api-version=2014-01-01' -Headers @{'Authorization' = "Bearer $azToken" }
-	}
-	catch {
-		$message = "API accessibility: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
-		Write-Log -logtext $message -logpath $logpath		
-	}
-
-	if ($PremiumCheck.PSObject.Properties.Count -ge 1) {
-		try {
-			$EntraIDConnectDetails = (Invoke-RestMethod -Uri "https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/$($PremiumCheck.value[0].serviceName)/servicemembers?api-version=2014-01-01" -Headers @{'Authorization' = "Bearer $azToken" }).value | ForEach-Object { [pscustomobject]@{machinename = $_.machinename; Enabled = -Not($_.disabled); version = (Invoke-RestMethod -Uri "https://management.azure.com/providers/Microsoft.ADHybridHealthService/services/$($PremiumCheck.value[0].serviceName)/servicemembers/$($_.serviceMemberId)/serviceconfiguration?api-version=2014-01-01" -Headers @{'Authorization' = "Bearer $azToken" }).version; LatestVersionAvailable = $LatestVersion; staging = ($_.monitoringConfigurationsComputed | Where-Object { $_.key -eq "StagingMode" }).value; createdDate = [DateTime]::Parse($_.createdDate).ToString("yyyy-MM-dd HH:mm:ss"); lastReboot = [DateTime]::Parse($_.lastreboot).ToString("yyyy-MM-dd HH:mm:ss"); OsName = $_.Osname } }
-			$message = "Entra ID connect servers found: $(if($EntraIDConnectDetails){$EntraIDConnectDetails.machinename -join ","})."
-			Write-Log -logtext $message -logpath $logpath
-			New-BaloonNotification -title "Information" -message $message
-		}
-		catch {
-			$message = "Entra ID connect Details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
-			Write-Log -logtext $message -logpath $logpath		
-		}
 	}
 }
 
@@ -790,15 +816,25 @@ if ($ConnectionDetail.scopes -contains "Policy.Read.All") {
 	
 	# Collaberation settings
 	try {
-		$Collabsettings = (invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/policies/authorizationPolicy") | ForEach-Object { [pscustomobject]@{AppRegistrationForAll = $_.defaultUserRolePermissions.allowedToCreateApps; allowedToReadOtherUsers = $_.defaultUserRolePermissions.allowedToReadOtherUsers; allowedToCreateSecurityGroups = $_.defaultUserRolePermissions.allowedToCreateSecurityGroups; AllowGuestInvitesFrom = $_.allowInvitesFrom; allowedToUseSSPR = $_.allowedToUseSSPR; allowEmailVerifiedUsersToJoinOrganization = $_.allowEmailVerifiedUsersToJoinOrganization; blockMsolPowerShell = $_.blockMsolPowerShell; allowedToCreateTenants = $_.defaultUserRolePermissions.allowedToCreateTenants } }
+		$Collabsettings = (invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/policies/authorizationPolicy") | ForEach-Object { [pscustomobject]@{AppRegistrationForAll = $_.defaultUserRolePermissions.allowedToCreateApps; allowedToReadOtherUsers = $_.defaultUserRolePermissions.allowedToReadOtherUsers; allowedToCreateSecurityGroups = $_.defaultUserRolePermissions.allowedToCreateSecurityGroups; AllowGuestInvitesFrom = $_.allowInvitesFrom; allowEmailVerifiedUsersToJoinOrganization = $_.allowEmailVerifiedUsersToJoinOrganization; blockMsolPowerShell = $_.blockMsolPowerShell; allowedToCreateTenants = $_.defaultUserRolePermissions.allowedToCreateTenants } }
 		$message = "Collaberation details summary done."
 		Write-Log -logtext $message -logpath $logpath
 	}
 	catch {
 		$message = "Entra ID collaberation details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
 		Write-Log -logtext $message -logpath $logpath		
-	}	
+	}
 }
+
+# SSPR settings | This is a workaround using undocumented API
+try {
+	$sspr = Invoke-RestMethod 'https://main.iam.ad.ext.azure.com/api/PasswordReset/PasswordResetPolicies?getPasswordResetEnabledGroup=true' -Headers @{Authorization = "Bearer $($token1)"; "x-ms-client-request-id" = [guid]::NewGuid().ToString(); "x-ms-client-session-id" = [guid]::NewGuid().ToString() } | Select-Object @{l = "SSPRStatus"; e = { If ($_.enablementType -eq 1) { "Enabled" } else { "disabled" } } }, @{l = "AuthMethodCout"; e = { $_.numberOfAuthenticationMethodsRequired } }, @{l = "numberOfQuestionsToRegister"; e = { $_.numberOfQuestionsToRegister -join "," } }, @{l = "numberOfQuestionsToReset"; e = { $_.numberOfQuestionsToReset -join "," } }, @{l = "GroupsInScope"; e = { $_.passwordResetEnabledGroupName -join "`n" } }, @{l = "skipRegistrationAllowed"; e = { $_.skipRegistrationAllowed } }, @{l = "skipRegistrationMaxAllowedDays"; e = { $_.skipRegistrationMaxAllowedDays } }, @{l = "customizeHelpdeskLink"; e = { $_.customizeHelpdeskLink } }, @{l = "customHelpdeskEmailOrUrl"; e = { $_.customHelpdeskEmailOrUrl } }
+}
+catch {
+	$message = "SSPR details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+	Write-Log -logtext $message -logpath $logpath		
+}
+
 
 
 if ($ConnectionDetail.scopes -contains "SecurityEvents.Read.All") {
@@ -846,14 +882,14 @@ if ($ConnectionDetail.scopes -contains "SecurityEvents.Read.All") {
 $threshold = 7 # number of days after which cert/secret would be expired
 $apps = @()
 $expiringsecrets = @()
-$expiringcerts  = @()
+$expiringcerts = @()
 $sensitiveapps = @()
 
 if ($ConnectionDetail.scopes -contains "Directory.Read.All") {
 	$apps = Get-SensitiveApps 
 
 	$expiringsecrets = ($apps | Where-Object { $_.secretenddate }) | Where-Object { (($_.secretenddate -split "`n" | ForEach-Object { [datetime]::ParseExact($_, "dd-MM-yyyy HH:mm:ss", [System.Globalization.CultureInfo]::InvariantCulture) }) | Measure-Object -Maximum).maximum -lt (get-date).Adddays($threshold) }
-	$expiringcerts = ($apps | Where-Object { $_.certenddate }) | Where-Object { (($_.certenddate -split "`n" | ForEach-Object { [datetime]::ParseExact($_, "dd-MM-yyyy HH:mm:ss", [System.Globalization.CultureInfo]::InvariantCulture)}) | Measure-Object -Maximum).maximum -lt (get-date).Adddays($threshold) }
+	$expiringcerts = ($apps | Where-Object { $_.certenddate }) | Where-Object { (($_.certenddate -split "`n" | ForEach-Object { [datetime]::ParseExact($_, "dd-MM-yyyy HH:mm:ss", [System.Globalization.CultureInfo]::InvariantCulture) }) | Measure-Object -Maximum).maximum -lt (get-date).Adddays($threshold) }
 	$sensitiveapps = $apps | Where-Object { $_.sensitivepermissions }
 }
 
@@ -918,18 +954,22 @@ If ($SecureScoreReport) {
 }
 
 if ($expiringsecrets) {
-	$expiringsecretSummary = ($expiringsecrets | select-object displayName, createdDateTime, enabled, servicePrincipalType, secretdisplayname, secretstartdate, secretenddate	 | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring secrets Summary: $($TenantBasicDetail.DisplayName)</h2>")  -replace "`n", "<br>"
+	$expiringsecretSummary = ($expiringsecrets | select-object displayName, createdDateTime, enabled, servicePrincipalType, secretdisplayname, secretstartdate, secretenddate	 | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring secrets Summary: $($TenantBasicDetail.DisplayName)</h2>") -replace "`n", "<br>"
 }
 
 if ($expiringcerts) {
-	$expiringcertSummary = ($expiringcerts | select-object displayName, createdDateTime, enabled, servicePrincipalType, certdisplayname, certthumbprint, certstartdate, certenddate, certusage, certtype | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring certificate Summary: $($TenantBasicDetail.DisplayName)</h2>")  -replace "`n", "<br>"
+	$expiringcertSummary = ($expiringcerts | select-object displayName, createdDateTime, enabled, servicePrincipalType, certdisplayname, certthumbprint, certstartdate, certenddate, certusage, certtype | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Apps - Expiring certificate Summary: $($TenantBasicDetail.DisplayName)</h2>") -replace "`n", "<br>"
 }
 
 if ($sensitiveapps) {
-	$sensitiveappSummary = ($sensitiveapps | select-object displayName, createdDateTime, enabled, servicePrincipalType, permissions, sensitivepermissions | ConvertTo-Html -As Table -Fragment -PreContent "<h2>sensitive apps Summary: $($TenantBasicDetail.DisplayName)</h2>")  -replace "`n", "<br>"
+	$sensitiveappSummary = ($sensitiveapps | select-object displayName, createdDateTime, enabled, servicePrincipalType, permissions, sensitivepermissions | ConvertTo-Html -As Table -Fragment -PreContent "<h2>sensitive apps Summary: $($TenantBasicDetail.DisplayName)</h2>") -replace "`n", "<br>"
 }
 
-$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $CollabsettingsSummary $EntraIDConnectSummary $PasswordLessSummary $PTAAgentSummary $LicenseSummary $RoleSummary $RBACRolesSummary $PIMRolesSummary $AccessreviewSummary $PasswordProtectionSummary $EnabledAuthSummary $CASSummary $SecureScoreReportSummary $expiringsecretSummary $expiringcertSummary $sensitiveappsummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
+if ($sspr) {
+	$ssprsummary = ($sspr |  ConvertTo-Html -As List -Fragment -PreContent "<h2>SSPR setting Summary: $($TenantBasicDetail.DisplayName)</h2>") -replace "`n", "<br>"
+}
+
+$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $ssprsummary $CollabsettingsSummary $EntraIDConnectSummary $PasswordLessSummary $PTAAgentSummary $LicenseSummary $RoleSummary $RBACRolesSummary $PIMRolesSummary $AccessreviewSummary $PasswordProtectionSummary $EnabledAuthSummary $CASSummary $SecureScoreReportSummary $expiringsecretSummary $expiringcertSummary $sensitiveappsummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
 
 # To preseve HTMLformatting in description
 $ReportRaw = [System.Web.HttpUtility]::HtmlDecode($ReportRaw)
