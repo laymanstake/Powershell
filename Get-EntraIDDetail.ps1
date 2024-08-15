@@ -513,7 +513,28 @@ else {
 $message = "Connection to Az module completed."
 Write-Log -logtext $message -logpath $logpath
 
+$portaltoken = (Get-AzAccessToken -ResourceUrl "https://admin.microsoft.com" -TenantId $ConnectionDetail.TenantId).token
 
+$portalheaders = @{
+	"Authorization" = "Bearer $($portaltoken)"
+	"Content-Type"  = "application/json"
+}
+
+try {
+	$SpeechEnabled = Invoke-RestMethod 'https://admin.microsoft.com/admin/api/services/apps/azurespeechservices' -Method GET -Headers $portalheaders
+}
+catch {
+	$message = "Azure speech details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+	Write-Log -logtext $message -logpath $logpath
+}
+
+try {
+	$BasicAuthDetails = Invoke-RestMethod 'https://admin.microsoft.com/admin/api/services/apps/modernAuth' -Method GET -Headers $portalheaders
+}
+catch {
+	$message = "Basic/ Modern Auth details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
+	Write-Log -logtext $message -logpath $logpath		
+}
 
 if ($ConnectionDetail.scopes -contains "Directory.Read.All" -OR $ConnectionDetail.scopes -contains "Directory.ReadWrite.All") {
 	try {
@@ -608,6 +629,7 @@ catch {
 	$message = "Tenant additional details: " + $error[0].exception.message + " : " + ($error[0].errordetails.message -split "`n")[0] 
 	Write-Log -logtext $message -logpath $logpath		
 }
+
 try {
 	$ptasss = Invoke-RestMethod 'https://main.iam.ad.ext.azure.com/api/Directories/ADConnectStatus' -Headers @{Authorization = "Bearer $($token1)"; "x-ms-client-request-id" = [guid]::NewGuid().ToString(); "x-ms-client-session-id" = [guid]::NewGuid().ToString() } | Select-Object @{l = "PTA"; e = { $_.passThroughAuthenticationEnabled } }, @{l = "seamlessSingleSign"; e = { $_.seamlessSingleSignOnEnabled } }
 	$phs = Invoke-RestMethod 'https://main.iam.ad.ext.azure.com/api/Directories/GetPasswordSyncStatus' -Headers @{Authorization = "Bearer $($token1)"; "x-ms-client-request-id" = [guid]::NewGuid().ToString(); "x-ms-client-session-id" = [guid]::NewGuid().ToString() } 
@@ -619,7 +641,7 @@ catch {
 
 if ($ConnectionDetail.scopes -contains "Directory.Read.All" -OR $ConnectionDetail.scopes -contains "Directory.ReadWrite.All") {
 	try {
-		$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; createdDateTime = $_.createdDateTime; countryLetterCode = $_.countryLetterCode; TenantID = $_.Id; OnPremisesSyncEnabled = $_.OnPremisesSyncEnabled; OnPremisesLastSyncDateTime = $_.OnPremisesLastSyncDateTime; TenantType = $_.TenantType; EntraID = $EntraLicense; Domain = (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "`n"; SecurityDefaults = $SecurityDefaults ; PTAEnbled = $ptasss.pta; PHSEnabled = $phs; SeamlessSignOn = $ptasss.seamlessSingleSign; passwordWritebackEnabled = $OnPremConfigDetails.passwordWritebackEnabled; DirectoryExtensions = ($DirectoryExtensions -join ","); groupWriteBackEnabled = $OnPremConfigDetails.groupWriteBackEnabled; IdentityProviders = $IdentityProviders; cloudPasswordPolicyForPasswordSyncedUsersEnabled = $OnPremConfigDetails.cloudPasswordPolicyForPasswordSyncedUsersEnabled; AdminPortalAccess = $tenantsetting.AdminPortalAccess ; LinkedInEnabled = $tenantsetting.LinkedInEnabled } }
+		$TenantBasicDetail = (Invoke-mgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization").value | ForEach-Object { [pscustomobject]@{DisplayName = $_.displayName; createdDateTime = $_.createdDateTime; countryLetterCode = $_.countryLetterCode; TenantID = $_.Id; OnPremisesSyncEnabled = $_.OnPremisesSyncEnabled; OnPremisesLastSyncDateTime = $_.OnPremisesLastSyncDateTime; TenantType = $_.TenantType; EntraID = $EntraLicense; Domain = (($_.VerifiedDomains | Where-Object { $_.Name -notlike "*.Onmicrosoft.com" }) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "`n"; SecurityDefaults = $SecurityDefaults ; PTAEnbled = $ptasss.pta; PHSEnabled = $phs; SeamlessSignOn = $ptasss.seamlessSingleSign; passwordWritebackEnabled = $OnPremConfigDetails.passwordWritebackEnabled; DirectoryExtensions = ($DirectoryExtensions -join ","); groupWriteBackEnabled = $OnPremConfigDetails.groupWriteBackEnabled; IdentityProviders = $IdentityProviders; cloudPasswordPolicyForPasswordSyncedUsersEnabled = $OnPremConfigDetails.cloudPasswordPolicyForPasswordSyncedUsersEnabled; AdminPortalAccess = $tenantsetting.AdminPortalAccess ; LinkedInEnabled = $tenantsetting.LinkedInEnabled ; SpeechEnabled = $SpeechEnabled.isTenantEnabled } }
 		$message = "Tenant basic details done"
 		Write-Log -logtext $message -logpath $logpath
 	}
@@ -907,7 +929,11 @@ if ($RoleDetail) {
 }
 
 if ($TenantBasicDetail) {
-	$TenantSummary = ($TenantBasicDetail | ConvertTo-Html -As List -Fragment -PreContent "<h2>Entra Summary: $forest</h2>") -replace "`n", "<br>"
+	$TenantSummary = ($TenantBasicDetail | ConvertTo-Html -As List -Fragment -PreContent "<h2>Entra Summary: $forest</h2>") -replace "`n", "<br>" -replace ",", "<br>"
+}
+
+if ($BasicAuthDetails) {
+	$BasicAuthSummary = ($BasicAuthDetails | ConvertTo-Html -As List -Fragment -PreContent "<h2>Basic/Modern Auth Summary: $forest</h2>") -replace "`n", "<br>"
 }
 
 if ($EntraIDConnectDetails) {
@@ -969,7 +995,7 @@ if ($sspr) {
 	$ssprsummary = ($sspr |  ConvertTo-Html -As List -Fragment -PreContent "<h2>SSPR setting Summary: $($TenantBasicDetail.DisplayName)</h2>") -replace "`n", "<br>"
 }
 
-$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $ssprsummary $CollabsettingsSummary $EntraIDConnectSummary $PasswordLessSummary $PTAAgentSummary $LicenseSummary $RoleSummary $RBACRolesSummary $PIMRolesSummary $AccessreviewSummary $PasswordProtectionSummary $EnabledAuthSummary $CASSummary $SecureScoreReportSummary $expiringsecretSummary $expiringcertSummary $sensitiveappsummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
+$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $BasicAuthSummary $ssprsummary $CollabsettingsSummary $EntraIDConnectSummary $PasswordLessSummary $PTAAgentSummary $LicenseSummary $RoleSummary $RBACRolesSummary $PIMRolesSummary $AccessreviewSummary $PasswordProtectionSummary $EnabledAuthSummary $CASSummary $SecureScoreReportSummary $expiringsecretSummary $expiringcertSummary $sensitiveappsummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
 
 # To preseve HTMLformatting in description
 $ReportRaw = [System.Web.HttpUtility]::HtmlDecode($ReportRaw)
