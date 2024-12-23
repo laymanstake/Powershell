@@ -24,7 +24,7 @@ function Get-GPOSettingReport {
 
     param (
         [Parameter(Mandatory = $true)][validatescript({ $_.count -ge 1 })][string[]]$GPO,
-        [Parameter(Mandatory = $false)]$outputPath
+        [Parameter(Mandatory = $false)][validatescript({ Test-Path -Path $_ -IsValid })][string]$outputPath
     )
     
     $Results = @()
