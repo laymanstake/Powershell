@@ -62,7 +62,8 @@ function Get-GPOSettingReport {
                         Type        = "Computer settings"
                         SettingName = $Policy.Name
                         State       = $Policy.state
-                        Settings    = $dropdownlist + "`n" + $Checkbox                        
+                        Settings    = $dropdownlist + "`n" + $Checkbox
+                        Explanation = $policy.explain
                         Category    = $Policy.category
                     }
                 }
@@ -97,6 +98,7 @@ function Get-GPOSettingReport {
                         SettingName = $Policy.Name
                         State       = $Policy.state                        
                         Settings    = $dropdownlist + "`n" + $Checkbox
+                        Explanation = $policy.explain
                         Category    = $Policy.category
                     }
                 }
