@@ -24,7 +24,13 @@ function Get-GPOSettingReport {
 
     param (
         [Parameter(Mandatory = $true)][validatescript({ $_.count -ge 1 })][string[]]$GPO,
-        [Parameter(Mandatory = $false)][validatescript({ Test-Path -Path $_ -IsValid })][string]$outputPath
+        [Parameter(Mandatory = $false)][validatescript({
+                $parentPath = Split-Path -Parent $_
+                if (-not (Test-Path -Path $parentPath)) {
+                    New-Item -ItemType Directory -Path $parentPath -Force | Out-Null
+                }
+                $true
+            })][string]$outputPath
     )
     
     $Results = @()
