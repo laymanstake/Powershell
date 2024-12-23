@@ -6,6 +6,8 @@ function Get-GPOSettingReport {
         As of now, its limited to list only the settings which are visible under all settings sections
         .PARAMETER GPO
         Specify one GPO name or list of multiple GPOs name
+        .PARAMETER outputPath
+        Specify filename (CSV) for the output
         .INPUTS
         None. It doesn't support input via pipeline
         .OUTPUTS
@@ -32,7 +34,7 @@ function Get-GPOSettingReport {
 
         $GPOInfo = $GPOxml.GPO
 
-        Write-Host "Processing $($GPOInfo.Name).."
+        #Write-Host "Processing $($GPOInfo.Name).."
 
         ForEach ($extension in $GPOxml.GPO.Computer.ExtensionData.Extension) {
             If ($extension.Policy.Name) {
