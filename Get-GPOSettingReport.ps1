@@ -35,34 +35,112 @@ function Get-GPOSettingReport {
     
     $Results = @()
 
-    ForEach ($GPOName in $GPO) {
+    ForEach ($GPOName in $GPO) {        
+        # capture the GPO settings in XML format
         $GPOxml = [xml](Get-GPOReport -Name $GPOName -ReportType Xml)        
 
+        # capture the GPO basic information
         $GPOInfo = $GPOxml.GPO
 
-        #Write-Host "Processing $($GPOInfo.Name).."
-
+        # capture the computer settings
         ForEach ($extension in $GPOxml.GPO.Computer.ExtensionData.Extension) {
+            # Looking for startup and shutdown scripts configured
+            If ( $extension.type -like "*Scripts" ) {
+                ForEach ($scr in $extension.Script) {
+                    If ($scr.command) {
+                        $results += [PSCustomObject]@{
+                            GPOName     = $GPOInfo.Name
+                            Type        = "Computer settings"
+                            SettingName = "Scripts (Startup/ Shutdown)"
+                            State       = "Enabled"
+                            Settings    = "$($scr.command) : $($scr.Type) : $($scr.Order) : $($scr.RunOrder)" 
+                            Explanation = ""
+                            Category    = "Windows Settings/Scripts"
+                        }
+                    }
+                }
+            }
+
+            # Looking for registry entries configured
+            If ( $extension.type -like "*SecuritySettings" ) {
+                ForEach ($reg in $extension.Registry) {
+                    If ($reg.Path) {
+                        $results += [PSCustomObject]@{
+                            GPOName     = $GPOInfo.Name
+                            Type        = "Computer settings"
+                            SettingName = "Security Settings/Registry"
+                            State       = ""
+                            Settings    = "$($reg.Path) | $($reg.Mode)" 
+                            Explanation = ""
+                            Category    = "Windows Settings/Security Settings/Registry"
+                        }
+                    }
+                }
+
+                # Looking for system services configured
+                ForEach ($sService in $extension.SystemServices) {
+                    If ($sService.Name) {
+                        $results += [PSCustomObject]@{
+                            GPOName     = $GPOInfo.Name
+                            Type        = "Computer settings"
+                            SettingName = "Security Settings/SystemServices"
+                            State       = ""
+                            Settings    = "$($sService.Name):$($sService.StartupMode)" 
+                            Explanation = ""
+                            Category    = "Windows Settings/Security Settings/SystemServices"
+                        }
+                    }
+                }
+
+                # Looking for restricted groups configured
+                ForEach ($rGroup in $extension.RestrictedGroups) {
+                    If ($rgroup.groupname.name.'#Text') {
+                        $results += [PSCustomObject]@{
+                            GPOName     = $GPOInfo.Name
+                            Type        = "Computer settings"
+                            SettingName = "Security Settings/RestrictedGroups"
+                            State       = ""
+                            Settings    = "GroupName:: $($rgroup.groupname.name.'#Text') : Member:: $($rgroup.member.name.'#Text') : MemberOf:: $($rgroup.memberOf.name.'#Text')" 
+                            Explanation = ""
+                            Category    = "Windows Settings/Security Settings/RestrictedGroups"
+                        }
+                    }
+                }
+
+                # Looking for security options configured
+                ForEach ($secoption in $extension.SecurityOptions) {
+                    If ($secoption.display.Name) {
+                        $results += [PSCustomObject]@{
+                            GPOName     = $GPOInfo.Name
+                            Type        = "Computer settings"
+                            SettingName = "Security Settings/SecurityOptions"
+                            State       = ""
+                            Settings    = "$($secoption.display.Name)::$($secoption.display.displayString)$($secoption.display.displayBoolean)$(($secoption.display.displayFields.field | ForEach-Object {"$($_.Name) $($_.value)"}) -join "`n")"
+                            Explanation = ""
+                            Category    = "Windows Settings/Security Settings/SecurityOptions"
+                        }
+                    }
+                }
+            }
+
+            # Looking for all settings configured
             If ($extension.Policy.Name) {
                 ForEach ($policy in $extension.Policy) {
                     $dropdownlist = ""
                     $Checkbox = ""
 
-                    $dropdownlist += ForEach ($dd in $policy.dropdownlist) {
-                        if ($dd) {
-                            "$($dd.Name) $($dd.State): $( $dd.value.name)"
-                        }
+                    $dropdownlist += ForEach ($dd in $policy.dropdownlist) {                        
+                        "$($dd.Name) $($dd.State): $( $dd.value.name)"                        
                     } 
 
-                    $dropdownlist = $dropdownlist -join "`n"
-                    
+                    # Convert the dropdownlist array to string
+                    $dropdownlist = $dropdownlist -join "`n"                    
 
-                    $Checkbox += ForEach ($cb in $policy.checkbox) {
-                        if ($cb) {
-                            "$($cb.Name) $($cb.State): $( $cb.value.name)"
-                        }
+                    $Checkbox += ForEach ($cb in $policy.checkbox) {                        
+                        "$($cb.Name) $($cb.State): $( $cb.value.name)"                        
                     }  
 
+                    # Conver the checkbox array to string
                     $Checkbox = $Checkbox -join "`n" 
                     
                     $results += [PSCustomObject]@{
@@ -78,24 +156,21 @@ function Get-GPOSettingReport {
             }
         }
 
+        # capture the user settings
         ForEach ($extension in $GPOxml.GPO.User.ExtensionData.Extension) {
             If ($extension.Policy.Name) {
                 ForEach ($policy in $extension.Policy) {
                     $dropdownlist = ""
                     $Checkbox = ""
-                    $dropdownlist += ForEach ($dd in $policy.dropdownlist) {
-                        if ($dd) {
-                            "$($dd.Name) $($dd.State): $( $dd.value.name)"
-                        }
+                    
+                    $dropdownlist += ForEach ($dd in $policy.dropdownlist) {                    
+                        "$($dd.Name) $($dd.State): $( $dd.value.name)"                        
                     } 
 
                     $dropdownlist = $dropdownlist -join "`n"
                     
-
-                    $Checkbox += ForEach ($cb in $policy.checkbox) {
-                        if ($cb) {
-                            "$($cb.Name) $($cb.State): $( $cb.value.name)"
-                        }
+                    $Checkbox += ForEach ($cb in $policy.checkbox) {                    
+                        "$($cb.Name) $($cb.State): $( $cb.value.name)"                        
                     }  
 
                     $Checkbox = $Checkbox -join "`n" 
