@@ -33,14 +33,14 @@ function Get-GPOSettingReport {
             })][string]$outputPath
     )
     
-    $Results = @()
+    $Results = @()    
 
     ForEach ($GPOName in $GPO) {        
         # capture the GPO settings in XML format
         $GPOxml = [xml](Get-GPOReport -Name $GPOName -ReportType Xml)        
 
         # capture the GPO basic information
-        $GPOInfo = $GPOxml.GPO
+        $GPOInfo = $GPOxml.GPO        
 
         # capture the computer settings
         ForEach ($extension in $GPOxml.GPO.Computer.ExtensionData.Extension) {
@@ -49,13 +49,16 @@ function Get-GPOSettingReport {
                 ForEach ($scr in $extension.Script) {
                     If ($scr.command) {
                         $results += [PSCustomObject]@{
-                            GPOName     = $GPOInfo.Name
-                            Type        = "Computer settings"
-                            SettingName = "Scripts (Startup/ Shutdown)"
-                            State       = "Enabled"
-                            Settings    = "$($scr.command) : $($scr.Type) : $($scr.Order) : $($scr.RunOrder)" 
-                            Explanation = ""
-                            Category    = "Windows Settings/Scripts"
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Scripts (Startup/ Shutdown)"
+                            State        = "Enabled"
+                            Settings     = "$($scr.command) : $($scr.Type) : $($scr.Order) : $($scr.RunOrder)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Scripts"
                         }
                     }
                 }
@@ -66,13 +69,16 @@ function Get-GPOSettingReport {
                 ForEach ($reg in $extension.Registry) {
                     If ($reg.Path) {
                         $results += [PSCustomObject]@{
-                            GPOName     = $GPOInfo.Name
-                            Type        = "Computer settings"
-                            SettingName = "Security Settings/Registry"
-                            State       = ""
-                            Settings    = "$($reg.Path) | $($reg.Mode)" 
-                            Explanation = ""
-                            Category    = "Windows Settings/Security Settings/Registry"
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Security Settings/Registry"
+                            State        = "N/A"
+                            Settings     = "$($reg.Path) | $($reg.Mode)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Security Settings/Registry"
                         }
                     }
                 }
@@ -81,13 +87,16 @@ function Get-GPOSettingReport {
                 ForEach ($sService in $extension.SystemServices) {
                     If ($sService.Name) {
                         $results += [PSCustomObject]@{
-                            GPOName     = $GPOInfo.Name
-                            Type        = "Computer settings"
-                            SettingName = "Security Settings/SystemServices"
-                            State       = ""
-                            Settings    = "$($sService.Name):$($sService.StartupMode)" 
-                            Explanation = ""
-                            Category    = "Windows Settings/Security Settings/SystemServices"
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Security Settings/SystemServices"
+                            State        = "N/A"
+                            Settings     = "$($sService.Name):$($sService.StartupMode)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Security Settings/SystemServices"
                         }
                     }
                 }
@@ -96,13 +105,16 @@ function Get-GPOSettingReport {
                 ForEach ($rGroup in $extension.RestrictedGroups) {
                     If ($rgroup.groupname.name.'#Text') {
                         $results += [PSCustomObject]@{
-                            GPOName     = $GPOInfo.Name
-                            Type        = "Computer settings"
-                            SettingName = "Security Settings/RestrictedGroups"
-                            State       = ""
-                            Settings    = "GroupName:: $($rgroup.groupname.name.'#Text') : Member:: $($rgroup.member.name.'#Text') : MemberOf:: $($rgroup.memberOf.name.'#Text')" 
-                            Explanation = ""
-                            Category    = "Windows Settings/Security Settings/RestrictedGroups"
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Security Settings/RestrictedGroups"
+                            State        = "N/A"
+                            Settings     = "GroupName:: $($rgroup.groupname.name.'#Text') : Member:: $($rgroup.member.name.'#Text') : MemberOf:: $($rgroup.memberOf.name.'#Text')" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Security Settings/RestrictedGroups"
                         }
                     }
                 }
@@ -111,13 +123,56 @@ function Get-GPOSettingReport {
                 ForEach ($secoption in $extension.SecurityOptions) {
                     If ($secoption.display.Name) {
                         $results += [PSCustomObject]@{
-                            GPOName     = $GPOInfo.Name
-                            Type        = "Computer settings"
-                            SettingName = "Security Settings/SecurityOptions"
-                            State       = ""
-                            Settings    = "$($secoption.display.Name)::$($secoption.display.displayString)$($secoption.display.displayBoolean)$(($secoption.display.displayFields.field | ForEach-Object {"$($_.Name) $($_.value)"}) -join "`n")"
-                            Explanation = ""
-                            Category    = "Windows Settings/Security Settings/SecurityOptions"
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Security Settings/SecurityOptions"
+                            State        = "N/A"
+                            Settings     = "$($secoption.display.Name)::$($secoption.display.displayString)$($secoption.display.displayBoolean)$(($secoption.display.displayFields.field | ForEach-Object {"$($_.Name) $($_.value)"}) -join "`n")"
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Security Settings/SecurityOptions"
+                        }
+                    }
+                }
+
+                # Looking for user rights assignments
+                ForEach ($rasgnmnt in $extension.UserRightsAssignment) {
+                    If ($rasgnmnt.member.name."#text") {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Local Policies/User Rights Assignment"
+                            State        = "N/A"
+                            Settings     = "Assignment type: $($rasgnmnt.name) | Assignment value: $($rasgnmnt.member.name."#text")" 
+                            Explanation  = "N/A"
+                            Category     = "Local Policies/User Rights Assignment"
+                        }
+                    }
+                }
+            }
+
+            # Looking for registry entries configured
+            If ( $extension.type -like "*RegistrySettings" ) {
+                ForEach ($reg in $extension.registrysetting) {
+                    If ($reg.value) {
+                        $regdetails = $reg | Where-Object { $_.value } | select-Object @{l = "keypath"; e = { $_.keypath + "\" + $_.value.Name } }, @{l = "value"; e = { "$($_.value.string)$($_.value.number)" } }
+
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Administrative Templates/Extra Registry Settings"
+                            State        = "N/A"
+                            Settings     = "$($regdetails.keypath) | $($regdetails.value)" 
+                            Explanation  = "N/A"
+                            Category     = "Administrative Templates/Extra Registry Settings"
                         }
                     }
                 }
@@ -144,13 +199,16 @@ function Get-GPOSettingReport {
                     $Checkbox = $Checkbox -join "`n" 
                     
                     $results += [PSCustomObject]@{
-                        GPOName     = $GPOInfo.Name
-                        Type        = "Computer settings"
-                        SettingName = $Policy.Name
-                        State       = $Policy.state
-                        Settings    = $dropdownlist + "`n" + $Checkbox
-                        Explanation = $policy.explain
-                        Category    = $Policy.category
+                        GPOName      = $GPOInfo.Name
+                        WhenCreated  = $GPOInfo.CreatedTime
+                        LastModified = $GPOInfo.ModifiedTime
+                        Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                        Type         = "Computer settings"
+                        SettingName  = $Policy.Name
+                        State        = $Policy.state
+                        Settings     = $dropdownlist + "`n" + $Checkbox
+                        Explanation  = $policy.explain
+                        Category     = $Policy.category
                     }
                 }
             }
@@ -176,13 +234,16 @@ function Get-GPOSettingReport {
                     $Checkbox = $Checkbox -join "`n" 
 
                     $results += [PSCustomObject]@{
-                        GPOName     = $GPOInfo.Name
-                        Type        = "User settings"
-                        SettingName = $Policy.Name
-                        State       = $Policy.state                        
-                        Settings    = $dropdownlist + "`n" + $Checkbox
-                        Explanation = $policy.explain
-                        Category    = $Policy.category
+                        GPOName      = $GPOInfo.Name
+                        WhenCreated  = $GPOInfo.CreatedTime
+                        LastModified = $GPOInfo.ModifiedTime
+                        Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                        Type         = "User settings"
+                        SettingName  = $Policy.Name
+                        State        = $Policy.state                        
+                        Settings     = $dropdownlist + "`n" + $Checkbox
+                        Explanation  = $policy.explain
+                        Category     = $Policy.category
                     }
                 }
             }
