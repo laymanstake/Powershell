@@ -44,6 +44,64 @@ function Get-GPOSettingReport {
 
         # capture the computer settings
         ForEach ($extension in $GPOxml.GPO.Computer.ExtensionData.Extension) {
+            # Looking for Public key policies
+            If ( $extension.type -like "*PublicKeySettings" ) {
+                
+                # Root Certification Authorities
+                ForEach ($rootcert in $extension.RootCertificate) {
+                    If ($rootcert) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Public Key Policies/Trusted Root Certification Authorities"
+                            State        = "Enabled"
+                            Settings     = "IssuedTo: $($rootcert.IssuedTo) | IssuedBy: $($rootcert.IssuedBy) | ExpirationDate: $($rootcert.ExpirationDate)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Public Key Policies/Trusted Root Certification Authorities"
+                        }
+                    }
+                }
+
+                # Intermediate Certification Authorities
+                ForEach ($Intermediaterootcert in $extension.IntermediateCACertificate) {
+                    If ($Intermediaterootcert) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Public Key Policies/Intermediate Certification Authorities"
+                            State        = "Enabled"
+                            Settings     = "IssuedTo: $($Intermediaterootcert.IssuedTo) | IssuedBy: $($Intermediaterootcert.IssuedBy) | ExpirationDate: $($Intermediaterootcert.ExpirationDate)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Public Key Policies/Intermediate Certification Authorities"
+                        }
+                    }
+                }
+
+                # Encrypting file system
+                ForEach ($efs in $extension.EFSRecoveryAgent) {
+                    If ($efs) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Public Key Policies/Encrypting file system"
+                            State        = "Enabled"
+                            Settings     = "IssuedTo: $($efs.IssuedTo) | IssuedBy: $($efs.IssuedBy) | ExpirationDate: $($efs.ExpirationDate) | CertificatePurpose: $($efs.CertificatePurpose.purpose)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Public Key Policies/Encrypting file system"
+                        }
+                    }
+                }
+            }
+
             # Looking for startup and shutdown scripts configured
             If ( $extension.type -like "*Scripts" ) {
                 ForEach ($scr in $extension.Script) {
@@ -64,8 +122,123 @@ function Get-GPOSettingReport {
                 }
             }
 
+            # Looking for Advanced Audit Policy Configuration settings
+            If ( $extension.type -like "*AuditSettings" ) {
+                # Looking for audit policies settings configured
+                ForEach ($auditsetting in $extension.auditsetting) {
+                    if ($auditsetting) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Security Settings/Advanced Audit Policy Configuration"
+                            State        = "Enabled"
+                            Settings     = "$($auditsetting.SubcategoryName): $($auditsetting.SettingValue)"
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Security Settings/Advanced Audit Policy Configuration"
+                        }
+                    }
+                }
+            }
+
+            # Looking for Windows Firewall Configuration settings
+            If ( $extension.type -like "*WindowsFirewallSettings" ) {
+                # Looking for Inbound firewall rules configured
+                ForEach ($InboundFirewallRule in $extension.InboundFirewallRules) {
+                    if ($InboundFirewallRule) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Security Settings/Windows Defender Firewall with Advanced Security/Inbound Rules"
+                            State        = $InboundFirewallRule.Active
+                            Settings     = "Name: $($InboundFirewallRule.Name) - Profile: $($InboundFirewallRule.Profile -join ' ') - LocalPort: $($InboundFirewallRule.Lport -join ' ') - RemotePort: $($InboundFirewallRule.Rport -join ' ') - App: $($InboundFirewallRule.app) - Protocol: $($InboundFirewallRule.protocol) - Action: $($InboundFirewallRule.Action)"
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Security Settings/Windows Defender Firewall with Advanced Security/Inbound Rules"
+                        }
+                    }
+                }
+
+                # Looking for Outbound firewall rules configured
+                ForEach ($OutboundFirewallRule in $extension.OutboundFirewallRules) {
+                    if ($OutboundFirewallRule) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Security Settings/Windows Defender Firewall with Advanced Security/Outbound Rules"
+                            State        = $OutboundFirewallRule.Active
+                            Settings     = "Name: $($OutboundFirewallRule.Name) - Profile: $($OutboundFirewallRule.Profile -join ' ') - LocalPort: $($OutboundFirewallRule.Lport -join ' ') - RemotePort: $($OutboundFirewallRule.Rport -join ' ') - App: $($OutboundFirewallRule.app) - Protocol: $($OutboundFirewallRule.protocol) - Action: $($OutboundFirewallRule.Action)"
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Security Settings/Windows Defender Firewall with Advanced Security/Outbound Rules"
+                        }
+                    }
+                }
+            }
+
             # Looking for registry entries configured
             If ( $extension.type -like "*SecuritySettings" ) {
+                # Looking for account policies settings configured
+                ForEach ($account in $extension.Account) {
+                    If ($account) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Security Settings/Account Policies"
+                            State        = "Enabled"
+                            Settings     = "$($account.type) policy - $($account.Name): $($account.SettingBoolean)$($account.SettingNumber)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Security Settings/Account Policies"
+                        }
+                    }
+                }
+
+                # Looking for event log settings configured
+                ForEach ($eventlog in $extension.eventlog) {
+                    If ($eventlog) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Security Settings/Event log"
+                            State        = "Enabled"
+                            Settings     = "$($eventlog.log) $($eventlog.name): $($eventlog.SettingNumber)$($eventlog.SettingBoolean)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Security Settings/Event log"
+                        }
+                    }
+                }
+
+                # Looking for Audit policy settings configured
+                ForEach ($audit in $extension.audit) {
+                    If ($audit) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Security Settings/Audit Policy"
+                            State        = "Enabled"
+                            Settings     = "$($audit.Name) - SuccessAttempts:$($audit.SuccessAttempts) | FailureAttempts:$($audit.FailureAttempts)"
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Security Settings/Audit Policy"
+                        }
+                    }
+                }
+
+                # Looking for registry settings configured
                 ForEach ($reg in $extension.Registry) {
                     If ($reg.Path) {
                         $results += [PSCustomObject]@{
