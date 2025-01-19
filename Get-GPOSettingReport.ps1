@@ -83,6 +83,24 @@ function Get-GPOSettingReport {
                     }
                 }
 
+                # Client - Auto-Enrollment Settings
+                ForEach ($AutoEnrollmentSettings in $extension.AutoEnrollmentSettings) {
+                    If ($AutoEnrollmentSettings) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Public Key Policies/Certificate Services Client - Auto-Enrollment Settings"
+                            State        = "Enabled"
+                            Settings     = "EnrollCertificatesAutomatically: $($AutoEnrollmentSettings.EnrollCertificatesAutomatically) | ExpiryNotification: $($AutoEnrollmentSettings.ExpiryNotification) | NotifyPercent: $($AutoEnrollmentSettings.NotifyPercent.value)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Public Key Policies/Certificate Services Client - Auto-Enrollment Settings"
+                        }
+                    }
+                }
+
                 # Encrypting file system
                 ForEach ($efs in $extension.EFSRecoveryAgent) {
                     If ($efs) {
@@ -406,6 +424,26 @@ function Get-GPOSettingReport {
                     }
                 }
             }
+
+            # Looking for Wireless Network (802.11) Policies configured
+            If ( $extension.type -like "*WLanSvcSettings" ) {
+                ForEach ($WLanSvcSetting in $extension.WLanSvcSetting) {
+                    If ($WLanSvcSetting) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Windows Settings/Security Settings/Wireless Network (802.11) Policies"
+                            State        = "N/A"
+                            Settings     = "Policy Name: $($WLanSvcSetting.WLanPolicies.name)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Security Settings"
+                        }
+                    }
+                }
+            }
         }
 
         # capture the user settings
@@ -485,6 +523,24 @@ function Get-GPOSettingReport {
                             Settings     = "IssuedTo: $($TrustedPeopleCertificate.IssuedTo) | IssuedBy: $($TrustedPeopleCertificate.IssuedBy) | ExpirationDate: $($TrustedPeopleCertificate.ExpirationDate)" 
                             Explanation  = "N/A"
                             Category     = "Windows Settings/Public Key Policies/Trusted People Certificates"
+                        }
+                    }
+                }
+
+                # Client - Auto-Enrollment Settings
+                ForEach ($AutoEnrollmentSettings in $extension.AutoEnrollmentSettings) {
+                    If ($AutoEnrollmentSettings) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "User settings"
+                            SettingName  = "Public Key Policies/Certificate Services Client - Auto-Enrollment Settings"
+                            State        = "Enabled"
+                            Settings     = "EnrollCertificatesAutomatically: $($AutoEnrollmentSettings.EnrollCertificatesAutomatically) | ExpiryNotification: $($AutoEnrollmentSettings.ExpiryNotification) | NotifyPercent: $($AutoEnrollmentSettings.NotifyPercent.value)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Public Key Policies/Certificate Services Client - Auto-Enrollment Settings"
                         }
                     }
                 }
@@ -597,5 +653,7 @@ function Get-GPOSettingReport {
 }
 
 $GPOs = (Get-GPO -All ).DisplayName
+
+#Get-GPOSettingReport -GPO "NPS Cert" -outputPath "c:\temp\AllGPOSettings2.csv"
 
 Get-GPOSettingReport -GPO $GPOs -outputPath "c:\temp\AllGPOSettings.csv"
