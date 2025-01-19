@@ -356,6 +356,7 @@ function Get-GPOSettingReport {
                 ForEach ($policy in $extension.Policy) {
                     $dropdownlist = ""
                     $Checkbox = ""
+                    $text = $policy.edittext.value
 
                     $dropdownlist += ForEach ($dd in $policy.dropdownlist) {                        
                         "$($dd.Name) $($dd.State): $( $dd.value.name)"                        
@@ -379,7 +380,7 @@ function Get-GPOSettingReport {
                         Type         = "Computer settings"
                         SettingName  = $Policy.Name
                         State        = $Policy.state
-                        Settings     = $dropdownlist + "`n" + $Checkbox
+                        Settings     = $text + "`n" + $dropdownlist + "`n" + $Checkbox
                         Explanation  = $policy.explain
                         Category     = $Policy.category
                     }
@@ -389,6 +390,28 @@ function Get-GPOSettingReport {
 
         # capture the user settings
         ForEach ($extension in $GPOxml.GPO.User.ExtensionData.Extension) {
+            # Looking for registry entries configured
+            If ( $extension.type -like "*RegistrySettings" ) {
+                ForEach ($reg in $extension.registrysetting) {
+                    If ($reg.value) {
+                        $regdetails = $reg | Where-Object { $_.value } | select-Object @{l = "keypath"; e = { $_.keypath + "\" + $_.value.Name } }, @{l = "value"; e = { "$($_.value.string)$($_.value.number)" } }
+
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer settings"
+                            SettingName  = "Administrative Templates/Extra Registry Settings"
+                            State        = "N/A"
+                            Settings     = "$($regdetails.keypath) | $($regdetails.value)" 
+                            Explanation  = "N/A"
+                            Category     = "Administrative Templates/Extra Registry Settings"
+                        }
+                    }
+                }
+            }
+
             If ($extension.Policy.Name) {
                 ForEach ($policy in $extension.Policy) {
                     $dropdownlist = ""
@@ -417,6 +440,51 @@ function Get-GPOSettingReport {
                         Settings     = $dropdownlist + "`n" + $Checkbox
                         Explanation  = $policy.explain
                         Category     = $Policy.category
+                    }
+                }
+            }
+
+            # Looking for drive map settings configured
+            If ( $extension.type -like "*DriveMapSettings" ) {
+                ForEach ($drivesettings in $extension.DriveMapSettings) {
+                    If ($drivesettings) {
+                        ForEach ($drive in $drivesettings.drive) {
+                            $filter = $drive.filters.filterldap.searchfilter
+                            $binding = $drive.filters.filterldap.binding
+
+                            $results += [PSCustomObject]@{
+                                GPOName      = $GPOInfo.Name
+                                WhenCreated  = $GPOInfo.CreatedTime
+                                LastModified = $GPOInfo.ModifiedTime
+                                Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                                Type         = "Preferences/Windows Settings"
+                                SettingName  = "Preferences/Windows Settings/Drive Maps"
+                                State        = If ($filter -OR $binding) { "Filter: $filter | Binding: $binding" } else { "" }
+                                Settings     = "Order: $($drive.GPOSettingOrder) | Drive letter: $($drive.Name) | Path: $($drive.Properties.path)"
+                                Explanation  = "N/A"
+                                Category     = "Preferences/Windows Settings"
+                            }
+                        }
+                    }
+                }
+            }
+
+            # Looking for login/logoff scripts
+            If ( $extension.type -like "*Scripts" ) {
+                ForEach ($script in $extension.script) {
+                    If ($script) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Preferences/Windows Settings"
+                            SettingName  = "Preferences/Windows Settings/Scripts"
+                            State        = "N/A"
+                            Settings     = "Type: $($script.type)| Order: $($script.Order)| Command: $($script.command) $($script.parameters)"
+                            Explanation  = "N/A"
+                            Category     = "Preferences/Windows Settings"
+                        }                        
                     }
                 }
             }
