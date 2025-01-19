@@ -102,6 +102,26 @@ function Get-GPOSettingReport {
                 }
             }
 
+            # Looking for software installation configured
+            If ( $extension.type -like "*SoftwareInstallationSettings" ) {
+                ForEach ($app in $extension.MsiApplication) {
+                    If ($app) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "Computer Settings/Policies/Software Settings"
+                            SettingName  = "Assigned Applications"
+                            State        = "N/A"
+                            Settings     = "Name: $($app.Name) | Path: $($app.path) | version: $($app.MajorVersion).$($app.MinorVersion) | DeploymentType: $($app.DeploymentType) | AutoInstall: $($app.AutoInstall)" 
+                            Explanation  = "N/A"
+                            Category     = "Policies/Assigned Applications"
+                        }
+                    }
+                }
+            }
+
             # Looking for startup and shutdown scripts configured
             If ( $extension.type -like "*Scripts" ) {
                 ForEach ($scr in $extension.Script) {
@@ -412,7 +432,84 @@ function Get-GPOSettingReport {
                 }
             }
 
-            If ($extension.Policy.Name) {
+            # Looking for public key settings
+            If ( $extension.type -like "*PublicKeySettings" ) {
+                
+                # Root Certification Authorities
+                ForEach ($rootcert in $extension.RootCertificate) {
+                    If ($rootcert) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "User settings"
+                            SettingName  = "Public Key Policies/Trusted Root Certification Authorities"
+                            State        = "Enabled"
+                            Settings     = "IssuedTo: $($rootcert.IssuedTo) | IssuedBy: $($rootcert.IssuedBy) | ExpirationDate: $($rootcert.ExpirationDate)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Public Key Policies/Trusted Root Certification Authorities"
+                        }
+                    }
+                }
+
+                # Intermediate Certification Authorities
+                ForEach ($Intermediaterootcert in $extension.IntermediateCACertificate) {
+                    If ($Intermediaterootcert) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "User settings"
+                            SettingName  = "Public Key Policies/Intermediate Certification Authorities"
+                            State        = "Enabled"
+                            Settings     = "IssuedTo: $($Intermediaterootcert.IssuedTo) | IssuedBy: $($Intermediaterootcert.IssuedBy) | ExpirationDate: $($Intermediaterootcert.ExpirationDate)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Public Key Policies/Intermediate Certification Authorities"
+                        }
+                    }
+                }
+
+                # Trusted People Certificate
+                ForEach ($TrustedPeopleCertificate in $extension.TrustedPeopleCertificate) {
+                    If ($TrustedPeopleCertificate) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "User settings"
+                            SettingName  = "Public Key Policies/Trusted People Certificates"
+                            State        = "Enabled"
+                            Settings     = "IssuedTo: $($TrustedPeopleCertificate.IssuedTo) | IssuedBy: $($TrustedPeopleCertificate.IssuedBy) | ExpirationDate: $($TrustedPeopleCertificate.ExpirationDate)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Public Key Policies/Trusted People Certificates"
+                        }
+                    }
+                }
+
+                # Encrypting file system
+                ForEach ($efs in $extension.EFSRecoveryAgent) {
+                    If ($efs) {
+                        $results += [PSCustomObject]@{
+                            GPOName      = $GPOInfo.Name
+                            WhenCreated  = $GPOInfo.CreatedTime
+                            LastModified = $GPOInfo.ModifiedTime
+                            Links        = $GPOInfo.linksTo.SOMPath -join "`n"
+                            Type         = "User settings"
+                            SettingName  = "Public Key Policies/Encrypting file system"
+                            State        = "Enabled"
+                            Settings     = "IssuedTo: $($efs.IssuedTo) | IssuedBy: $($efs.IssuedBy) | ExpirationDate: $($efs.ExpirationDate) | CertificatePurpose: $($efs.CertificatePurpose.purpose)" 
+                            Explanation  = "N/A"
+                            Category     = "Windows Settings/Public Key Policies/Encrypting file system"
+                        }
+                    }
+                }
+            }
+
+            # Looking for policy settings
+            If ($extension.Policy) {
                 ForEach ($policy in $extension.Policy) {
                     $dropdownlist = ""
                     $Checkbox = ""
