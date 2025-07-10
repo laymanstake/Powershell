@@ -75,72 +75,6 @@ function New-BaloonNotification {
 	Get-EventSubscriber -SourceIdentifier "BalloonClicked_event"  -ErrorAction SilentlyContinue | Unregister-Event # In case if the Event Subscription is not disposed
 }
 
-# This function gives user option to opt out from some of the permissions required, report would be reduced as well
-function Get-PermSelection {
-	[CmdletBinding()]
-	Param(
-		[Parameter(ValueFromPipeline = $true, mandatory = $true)]$permissions
-	)
-
-	Add-Type -AssemblyName System.Windows.Forms
-	[System.Windows.Forms.Application]::EnableVisualStyles() # To enable system theme
-    
-	$OKButton = New-Object System.Windows.Forms.Button -Property @{
-		Location     = New-Object System.Drawing.Point(75, 220)
-		Size         = New-Object System.Drawing.Size(75, 23)
-		Text         = 'OK'
-		DialogResult = [System.Windows.Forms.DialogResult]::OK
-	}
-
-	$CancelButton = New-Object System.Windows.Forms.Button -Property @{
-		Location     = New-Object System.Drawing.Point(250, 220)
-		Size         = New-Object System.Drawing.Size(75, 23)
-		Text         = 'Cancel'
-		DialogResult = [System.Windows.Forms.DialogResult]::Cancel
-	}
-
-	$label = New-Object System.Windows.Forms.Label -Property @{
-		Location = New-Object System.Drawing.Point(10, 20)
-		Size     = New-Object System.Drawing.Size(370, 20)
-		Text     = 'Select the permissions, you wish to allow, all needed for complete report'
-	}
-
-	$listBox = New-Object System.Windows.Forms.Listbox -Property @{
-		Location      = New-Object System.Drawing.Point(10, 50)
-		Size          = New-Object System.Drawing.Size(370, 150)
-		Height        = 150
-	}
-    
-	[void] $listBox.Items.AddRange($permissions)
-    
-	$SScreen = New-Object system.Windows.Forms.Form -Property @{
-		Width           = 400
-		Height          = 300
-		TopMost         = $true
-		StartPosition   = 1
-		FormBorderStyle = 5
-		BackColor       = [System.Drawing.Color]::White
-		AcceptButton    = $OKButton
-		CancelButton    = $CancelButton        
-	}    
-
-	$SScreen.Controls.AddRange(@($OKButton, $CancelButton, $label, $listBox))   
-    
-	# All permissions are selected by default
-	for ($i = 0; $i -lt $listBox.Items.Count; $i++) {
-		$listBox.SetSelected($i, $true)
-	}    
-
-	$result = $SScreen.ShowDialog()
-    
-	if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
-		return $listBox.SelectedItems        
-	}
-	else {
-		return $null
-	}
-}
-
 # Function to parse datetime string with different cultures
 function Convert-ToDateTime {
 	param (
@@ -239,16 +173,12 @@ If ($logopath) {
 #>
 
 $requiredscopes = @(
-	"IdentityProvider.Read.All", # Required for reading configured identity providers
-	"Directory.Read.All", # Required for reading licenses, organization settings, roles
-	"OnPremDirectorySynchronization.Read.All", # Required for on-prem directory synchronization settings
-	"Application.Read.All", # Required for reading enabled directory extensions
-	"RoleManagement.Read.All" # Required for reading Piviledged and RBAC roles
-	"AccessReview.Read.All", # Required for reading access review settings
-	"Policy.Read.All", # Required for reading conditional access policy details
-	"SecurityEvents.Read.All", # Required for reading Identity security score details
-	"Directory.ReadWrite.All", # Required for reading Pass Through authenication agent details
-	"Policy.ReadWrite.AuthenticationMethod" # Required for reading authentication method details
+	"DeviceManagementManagedDevices.Read.All",
+	"DeviceManagementConfiguration.Read.All",
+	"DeviceManagementApps.Read.All",
+	"DeviceManagementRBAC.Read.All",
+	"DeviceManagementServiceConfig.Read.All,",
+	"Policy.Read.All","Directory.Read.All"
 ) # Enterprise Application named Microsoft Graph Command Line Tools would be granted delegated permissions
 
 $message = "opt out screen though all permissions are required for full report"
@@ -642,7 +572,7 @@ do {
 		$uri = $response.'@odata.nextLink'		
 	} while ($uri)
 
-
+# Capture Windows Autopilot devices
 $Uri = "https://graph.microsoft.com/beta/deviceManagement/windowsAutopilotDeviceIdentities?`$top=999"
 $AutoPilotdevices = @()
 $details = @()
