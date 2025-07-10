@@ -75,49 +75,6 @@ function New-BaloonNotification {
 	Get-EventSubscriber -SourceIdentifier "BalloonClicked_event"  -ErrorAction SilentlyContinue | Unregister-Event # In case if the Event Subscription is not disposed
 }
 
-# Function to parse datetime string with different cultures
-function Convert-ToDateTime {
-	param (
-		[string[]]$dateStrings
-	)
-
-	# List of cultures to test
-	$cultures = @('en-US', 'en-GB', 'fr-FR', 'de-DE', 'es-ES', 'en-IN')
-	$results = @()
-
-	if (-Not $dateStrings) {
-		return $null
-	}
-
-	foreach ($dateString in $dateStrings) {
-		if ([string]::IsNullOrEmpty($dateString)) {
-			$results += $null
-			continue
-		}
-
-		$parsed = $null
-		foreach ($culture in $cultures) {
-			try {
-				$cultureInfo = [System.Globalization.CultureInfo]::GetCultureInfo($culture)
-				$parsed = [datetime]::Parse($dateString, $cultureInfo)
-				break
-			}
-			catch {
-				# Continue to the next culture if parsing fails
-				continue
-			}
-		}
-
-		if (-NOT $parsed) {
-			throw "Unable to parse date string: $dateString"
-		}
-
-		$results += $parsed.ToString("dd-MM-yyyy HH:mm:ss")
-	}
-
-	return $results
-}
-
 $logpath = "c:\temp\EntraIDIntuneReport_$(get-date -Uformat "%Y%m%d-%H%M%S").txt"
 
 #Import PowerShell Module, install if not already installed
