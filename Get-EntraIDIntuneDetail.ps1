@@ -521,9 +521,22 @@ ForEach($WindowsUpdateRing in $WindowsUpdateRings){
 	}
 }
 
+# Capture conditional access policies
+$Uri = "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies?`$top=999"
+$CASPolicyDetail = @()
+$details = @()
+do {
+		$response = Invoke-MgGraphRequest -Uri $uri
+		$details = $response.value | ForEach-Object {[PSCustomObject]$_} | Select-Object DisplayName, state, createdDateTime, modifiedDateTime, @{l="Locations";e={$_.conditions.locations.includeLocations -join "`n"}}, @{l="Platforms";e={$_.conditions.platforms.includeplatforms -join "`n"}}, @{l="ClientAppTypes";e={$_.conditions.clientAppTypes -join "`n"}}
+		$CASPolicyDetail += $details
+		$uri = $response.'@odata.nextLink'
+		
+	} while ($uri)
+
+$CASPolicyDetail = $details | Select-Object DisplayName, state, createdDateTime, modifiedDateTime, locations, platforms, clientAppTypes
 
 # Capture deployed apps details
-$Uri = "https://graph.microsoft.com/v1.0//deviceAppManagement/mobileApps?`$top=999"
+$Uri = "https://graph.microsoft.com/v1.0/deviceAppManagement/mobileApps?`$top=999"
 $deployedApps = @()
 $details = @()
 do {
@@ -589,7 +602,7 @@ $DeviceCompliancePolicies = @()
 $details = @()
 do {
 		$response = Invoke-MgGraphRequest -Uri $uri
-		$details = $response.value | ForEach-Object {[PSCustomObject]$_} | Select-Object displayName, description, createdDateTime
+		$details = $response.value | ForEach-Object {[PSCustomObject]$_} | Select-Object displayName, description, @{l="Type";e={($_.'@odata.type' -replace "#microsoft.graph.") -replace "CompliancePolicy"}}, createdDateTime
 		$DeviceCompliancePolicies += $details 
 		$uri = $response.'@odata.nextLink'		
 	} while ($uri)
@@ -655,6 +668,10 @@ if($RoleDefSummary){
 	$RoleDefSummary = ($RoleDefSummary | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Role Definition/Assignment Summary</h2>" ) -replace "`n", "<br>"
 }
 
+If($CASPolicyDetail){
+	$CASPolicyDetail = ($CASPolicyDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Conditional Access Policy Summary</h2>")  -replace "`n", "<br>"
+}
+
 if($deviceSummary){
 	$deviceOSSummary = $deviceSummary | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Device Summary</h2>"
 }
@@ -715,7 +732,7 @@ If($WindowsUpdateRingSummary){
 	$WindowsUpdateRingSummary = $WindowsUpdateRingSummary | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Windows Update Ring Summary</h2>"
 }
 
-$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $RoleDefSummary $deviceOSSummary $WindowsFeatureUpdateSummary $WindowsUpdateRingSummary $AutoPilotdeviceSummary $allConfigurationProfileSummary $deviceConfigScriptSummary $deployedAppSummary $AppProtectionPolicySummary $AppConfigPolicySummary $DeviceCompliancePolicySummary $CompliancePolicySettingStateSummary $SeurityBaselineTemplateSummary $DeviceEnrollmentConfigSummary $DeviceEnrollmentLimitSummary $WindowsHelloConfigSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
+$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $RoleDefSummary $CASPolicyDetail $deviceOSSummary $WindowsFeatureUpdateSummary $WindowsUpdateRingSummary $AutoPilotdeviceSummary $allConfigurationProfileSummary $deviceConfigScriptSummary $deployedAppSummary $AppProtectionPolicySummary $AppConfigPolicySummary $DeviceCompliancePolicySummary $CompliancePolicySettingStateSummary $SeurityBaselineTemplateSummary $DeviceEnrollmentConfigSummary $DeviceEnrollmentLimitSummary $WindowsHelloConfigSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
 
 # To preseve HTMLformatting in description
 $ReportRaw = [System.Web.HttpUtility]::HtmlDecode($ReportRaw)
