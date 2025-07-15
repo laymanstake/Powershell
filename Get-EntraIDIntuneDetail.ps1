@@ -141,13 +141,6 @@ $requiredscopes = @(
 $message = "opt out screen though all permissions are required for full report"
 Write-Log -logtext $message -logpath $logpath
 
-#$selectscopes = Get-PermSelection -permissions @('IdentityProvider.Read.All', 'Directory.Read.All', 'OnPremDirectorySynchronization.Read.All', 'Application.Read.All', 'RoleManagement.Read.All', 'AccessReview.Read.All', 'Policy.Read.All', 'SecurityEvents.Read.All', 'Organization.Read.All', 'Policy.ReadWrite.AuthenticationMethod')
-$selectscopes = ('Directory.Read.All', 'OnPremDirectorySynchronization.Read.All', 'Organization.Read.All')
-
-if ($selectscopes) {
-	$requiredscopes = $selectscopes
-}
-
 if (Get-MgContext) {	
 	# Disconnect current connection before starting
 	try {
@@ -231,7 +224,7 @@ if ($ConnectionDetail.scopes -contains "Directory.Read.All" -OR $ConnectionDetai
 }
 
 # Capturing tenant basic details
-$TenantBasicDetail = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/organization?`$select=VerifiedDomains,createdDateTime,displayName,countryLetterCode,id,onPremisesSyncEnabled,onPremisesLastSyncDateTime,tenantType").value | ForEach-Object{[pscustomobject]@{DisplayName=$_.displayName;createdDateTime=$_.createdDateTime;countryLetterCode=$_.countryLetterCode;TenantID=$_.Id;OnPremisesSyncEnabled=$_.OnPremisesSyncEnabled;OnPremisesLastSyncDateTime=$_.OnPremisesLastSyncDateTime;TenantType=$_.TenantType;IntuneStatus=$IntuneStatus;EntraLicense=$EntraLicense;MDMAuthority=(Invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/organization/$($_.id)?`$select=mobileDeviceManagementAuthority")["mobileDeviceManagementAuthority"];Domain=(($_.VerifiedDomains ) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "`n";SecurityDefaults=(Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"];deviceInactivityBeforeRetirementInDays = (invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/deviceManagement/managedDeviceCleanupSettings").deviceInactivityBeforeRetirementInDays }}
+$TenantBasicDetail = (invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/organization?`$select=VerifiedDomains,createdDateTime,displayName,countryLetterCode,id,onPremisesSyncEnabled,onPremisesLastSyncDateTime,tenantType").value | ForEach-Object{[pscustomobject]@{DisplayName=$_.displayName;createdDateTime=$_.createdDateTime;countryLetterCode=$_.countryLetterCode;TenantID=$_.Id;OnPremisesSyncEnabled=$_.OnPremisesSyncEnabled;OnPremisesLastSyncDateTime=$_.OnPremisesLastSyncDateTime;TenantType=$_.TenantType;IntuneStatus=$IntuneStatus;EntraLicense=$EntraLicense;MDMAuthority=(Invoke-MgGraphRequest -uri "https://graph.microsoft.com/v1.0/organization/$($_.id)?`$select=mobileDeviceManagementAuthority")["mobileDeviceManagementAuthority"];Domain=(($_.VerifiedDomains ) | ForEach-Object { "$($_.Type):$($_.Name)" } ) -join "`n";SecurityDefaults=(Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy")["isEnabled"];deviceInactivityBeforeRetirementInDays = (invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/deviceManagement/managedDeviceCleanupRules").value.deviceInactivityBeforeRetirementInDays }}
 
 # Capture all role definitions
 $uri = "https://graph.microsoft.com/beta/deviceManagement/roleDefinitions?`$top=999"
@@ -420,7 +413,20 @@ do {
 		
 	} while ($uri)
 
-$CASPolicyDetail = $details | Select-Object DisplayName, state, createdDateTime, modifiedDateTime, locations, platforms, clientAppTypes
+# Capture Authentication Strengths
+$Uri = "https://graph.microsoft.com/v1.0/policies/authenticationStrengthPolicies"
+$AuthStrengths = @()
+$details = @()
+do {
+		$response = Invoke-MgGraphRequest -Uri $uri
+		$details = $response.value | ForEach-Object {[PSCustomObject]$_} | Select-Object displayName, description, policyType, createdDateTime, @{l="allowedCombinations";e={$_.allowedCombinations -join "`n"}}
+		$AuthStrengths += $details
+		$uri = $response.'@odata.nextLink'
+		
+	} while ($uri)
+
+
+# (Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/authenticationMethodsPolicy") | %{[pscustomobject]$_} | Select-Object DisplayName, description, policyMigrationState
 
 # Capture deployed apps details
 $Uri = "https://graph.microsoft.com/v1.0/deviceAppManagement/mobileApps?`$top=999"
@@ -559,6 +565,11 @@ If($CASPolicyDetail){
 	$CASPolicyDetail = ($CASPolicyDetail | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Conditional Access Policy Summary</h2>")  -replace "`n", "<br>"
 }
 
+If($AuthStrengths){
+	$AuthStrengths = ($AuthStrengths | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Authentication Strength Summary</h2>")  -replace "`n", "<br>"
+}
+
+
 if($deviceSummary){
 	$deviceOSSummary = $deviceSummary | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Device Summary</h2>"
 }
@@ -619,7 +630,7 @@ If($WindowsUpdateRingSummary){
 	$WindowsUpdateRingSummary = $WindowsUpdateRingSummary | ConvertTo-Html -As Table -Fragment -PreContent "<h2>Windows Update Ring Summary</h2>"
 }
 
-$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $RoleDefSummary $CASPolicyDetail $deviceOSSummary $WindowsFeatureUpdateSummary $WindowsUpdateRingSummary $AutoPilotdeviceSummary $allConfigurationProfileSummary $deviceConfigScriptSummary $deployedAppSummary $AppProtectionPolicySummary $AppConfigPolicySummary $DeviceCompliancePolicySummary $CompliancePolicySettingStateSummary $SeurityBaselineTemplateSummary $DeviceEnrollmentConfigSummary $DeviceEnrollmentLimitSummary $WindowsHelloConfigSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
+$ReportRaw = ConvertTo-HTML -Body "$TenantSummary $RoleDefSummary $AuthStrengths $CASPolicyDetail $deviceOSSummary $WindowsFeatureUpdateSummary $WindowsUpdateRingSummary $AutoPilotdeviceSummary $allConfigurationProfileSummary $deviceConfigScriptSummary $deployedAppSummary $AppProtectionPolicySummary $AppConfigPolicySummary $DeviceCompliancePolicySummary $CompliancePolicySettingStateSummary $SeurityBaselineTemplateSummary $DeviceEnrollmentConfigSummary $DeviceEnrollmentLimitSummary $WindowsHelloConfigSummary" -Head $header -Title "Report on Entra ID: $($TenantBasicDetail.Displayname)" -PostContent "<p id='CreationDate'>Creation Date: $(Get-Date) $CopyRightInfo </p>"
 
 # To preseve HTMLformatting in description
 $ReportRaw = [System.Web.HttpUtility]::HtmlDecode($ReportRaw)
