@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microsoft Defender - User Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="ph-fill ph-shield-check" style="color: #0078d4; font-size: 24px;"></i>
+                <span>Microsoft Defender</span>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-group">
+                    <div class="nav-group-title">Assets</div>
+                    <a href="#" class="nav-item active">
+                        <i class="ph ph-users"></i>
+                        <span>Users</span>
+                    </a>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" class="nav-item" id="btnSettings">
+                    <i class="ph ph-gear"></i>
+                    <span>Settings</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="icon-btn" id="btnSidebarToggle"><i class="ph ph-list"></i></button>
+                </div>
+                <div class="header-search">
+                    <div class="search-box">
+                        <i class="ph ph-magnifying-glass"></i>
+                        <input type="text" id="globalSearch" placeholder="Search everywhere">
+                    </div>
+                </div>
+                <div class="header-right">
+                    <!-- Help Menu -->
+                    <div style="position:relative; display:inline-block;">
+                        <button class="icon-btn" id="btnHelp"><i class="ph ph-question"></i></button>
+                        <div class="filter-dropdown" id="helpMenu" style="right: 0; left: auto; width: 220px;">
+                            <div class="row-action-item"><i class="ph ph-book-open"></i> Documentation</div>
+                            <div class="row-action-item"><i class="ph ph-chat-circle-text"></i> Support</div>
+                            <div class="row-action-item"><i class="ph ph-info"></i> About Defender</div>
+                        </div>
+                    </div>
+
+                    <!-- Notifications Menu -->
+                    <div style="position:relative; display:inline-block;">
+                        <button class="icon-btn" id="btnNotifications"><i class="ph ph-bell"></i></button>
+                        <div class="filter-dropdown" id="notifMenu" style="right: 0; left: auto; width: 320px;">
+                            <div class="filter-section">
+                                <label class="filter-title">Notifications (3 New)</label>
+                                <div class="row-action-item" style="color: var(--risk-high);"><i class="ph ph-warning-circle" style="font-size:16px;"></i> Failed logins detected</div>
+                                <div class="row-action-item" style="color: var(--risk-medium);"><i class="ph ph-shield-warning" style="font-size:16px;"></i> Policy update required</div>
+                                <div class="row-action-item" style="color: var(--risk-low);"><i class="ph ph-check-circle" style="font-size:16px;"></i> Scan completed successfully</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Profile Menu -->
+                    <div style="position:relative; display:inline-block;">
+                        <div class="user-profile" id="btnProfile">
+                            <div class="avatar">JD</div>
+                        </div>
+                        <div class="filter-dropdown" id="profileMenu" style="right: 0; left: auto; width: 220px; top: calc(100% + 16px);">
+                            <div class="filter-section" style="padding: 0 16px 12px 16px; border-bottom: 1px solid var(--border-light); margin-bottom: 8px;">
+                                <div style="font-weight: 600; color: var(--text-primary);">JD (Admin)</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">jd@contoso.com</div>
+                            </div>
+                            <div class="row-action-item"><i class="ph ph-user"></i> Account Settings</div>
+                            <div class="row-action-item" style="color: var(--risk-high);"><i class="ph ph-sign-out"></i> Sign Out</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <div id="usersListPage">
+                    <div class="page-header">
+                    <div class="breadcrumbs">
+                        <span>Assets</span> <i class="ph ph-caret-right"></i> <span>Users</span>
+                    </div>
+                    <h1>Users</h1>
+                    <p class="subtitle">Manage user identities, view risk levels, and take response actions.</p>
+                </div>
+
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <div class="search-input">
+                            <i class="ph ph-magnifying-glass"></i>
+                            <input type="text" id="userSearch" placeholder="Search for users...">
+                        </div>
+                        
+                        <!-- Sort Dropdown -->
+                        <div style="position:relative; display:inline-block;">
+                            <button class="btn btn-secondary" id="btnSort"><i class="ph ph-sort-ascending"></i> Sort</button>
+                            <div class="filter-dropdown" id="sortDropdown">
+                                <div class="filter-section">
+                                    <label class="filter-title">Sort By</label>
+                                    <label class="filter-option"><input type="radio" name="sortCol" value="name" checked> Display Name</label>
+                                    <label class="filter-option"><input type="radio" name="sortCol" value="upn"> User Principal Name</label>
+                                    <label class="filter-option"><input type="radio" name="sortCol" value="priority"> Investigation Priority</label>
+                                    <label class="filter-option"><input type="radio" name="sortCol" value="insiderRisk"> Insider Risk</label>
+                                    <label class="filter-option"><input type="radio" name="sortCol" value="status"> Status</label>
+                                    <label class="filter-option"><input type="radio" name="sortCol" value="lastSeen"> Last Seen</label>
+                                </div>
+                                <div class="filter-section">
+                                    <label class="filter-title">Order</label>
+                                    <label class="filter-option"><input type="radio" name="sortOrder" value="asc" checked> Ascending</label>
+                                    <label class="filter-option"><input type="radio" name="sortOrder" value="desc"> Descending</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="position:relative; display:inline-block;">
+                            <button class="btn btn-secondary" id="btnFilter"><i class="ph ph-funnel"></i> Filter</button>
+                            <div class="filter-dropdown" id="filterDropdown">
+                                <div class="filter-section">
+                                    <label class="filter-title">Investigation Priority</label>
+                                    <label class="filter-option"><input type="checkbox" value="High" class="filter-priority"> High</label>
+                                    <label class="filter-option"><input type="checkbox" value="Medium" class="filter-priority"> Medium</label>
+                                    <label class="filter-option"><input type="checkbox" value="Low" class="filter-priority"> Low</label>
+                                </div>
+                                <div class="filter-section">
+                                    <label class="filter-title">Insider Risk</label>
+                                    <label class="filter-option"><input type="checkbox" value="Critical" class="filter-risk"> Critical</label>
+                                    <label class="filter-option"><input type="checkbox" value="Elevated" class="filter-risk"> Elevated</label>
+                                    <label class="filter-option"><input type="checkbox" value="None" class="filter-risk"> None</label>
+                                </div>
+                                <div class="filter-section">
+                                    <label class="filter-title">Status</label>
+                                    <label class="filter-option"><input type="checkbox" value="Active" class="filter-status"> Active</label>
+                                    <label class="filter-option"><input type="checkbox" value="Blocked" class="filter-status"> Blocked</label>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary" id="btnExport"><i class="ph ph-export"></i> Export</button>
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn btn-primary" id="btnBlock" disabled><i class="ph ph-prohibit"></i> Block sign-in</button>
+                        <button class="btn btn-secondary" id="btnReset" disabled><i class="ph ph-key"></i> Reset password</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAll"></th>
+                                <th class="sortable" data-sort="name" style="cursor:pointer">Display Name <i class="ph ph-arrows-down-up" style="opacity:0.5; margin-left:4px"></i></th>
+                                <th class="sortable" data-sort="upn" style="cursor:pointer">User Principal Name <i class="ph ph-arrows-down-up" style="opacity:0.5; margin-left:4px"></i></th>
+                                <th class="sortable" data-sort="priority" style="cursor:pointer">Investigation Priority <i class="ph ph-arrows-down-up" style="opacity:0.5; margin-left:4px"></i></th>
+                                <th class="sortable" data-sort="insiderRisk" style="cursor:pointer">Insider Risk <i class="ph ph-arrows-down-up" style="opacity:0.5; margin-left:4px"></i></th>
+                                <th class="sortable" data-sort="status" style="cursor:pointer">Status <i class="ph ph-arrows-down-up" style="opacity:0.5; margin-left:4px"></i></th>
+                                <th class="sortable" data-sort="lastSeen" style="cursor:pointer">Last Seen <i class="ph ph-arrows-down-up" style="opacity:0.5; margin-left:4px"></i></th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="pagination">
+                    <span>Showing 1-8 of 124 items</span>
+                    <div class="pagination-controls">
+                        <button class="icon-btn" disabled><i class="ph ph-caret-left"></i></button>
+                        <button class="icon-btn"><i class="ph ph-caret-right"></i></button>
+                    </div>
+                </div>
+                </div> <!-- End usersListPage -->
+
+                <!-- User Profile Page -->
+                <div id="userProfilePage" style="display: none;">
+                    <div class="breadcrumbs">
+                        <span id="backToUsersBtn" style="color: var(--accent-blue); font-weight: 600;"><i class="ph ph-arrow-left" style="margin-right: 4px; vertical-align: middle;"></i> Back to Users</span>
+                    </div>
+                    <div class="profile-header" style="display: flex; gap: 24px; align-items: center; margin-top: 24px; margin-bottom: 32px; padding: 24px; background: rgba(0,0,0,0.2); border-radius: var(--radius-lg); border: 1px solid var(--border-light);">
+                        <div id="profileAvatar" style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), #c084fc); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: white;"></div>
+                        <div>
+                            <h1 id="profileName" style="font-size: 28px; margin-bottom: 4px;"></h1>
+                            <p id="profileUpn" style="color: var(--text-secondary);"></p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <div style="background: rgba(0,0,0,0.2); padding: 24px; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+                            <h3 style="margin-bottom: 16px; color: var(--text-secondary); text-transform: uppercase; font-size: 12px; letter-spacing: 0.05em;">Risk Information</h3>
+                            <div style="margin-bottom: 12px;"><strong>Investigation Priority:</strong> <span id="profilePriority" style="margin-left: 8px;"></span></div>
+                            <div style="margin-bottom: 12px;"><strong>Insider Risk:</strong> <span id="profileRisk" style="margin-left: 8px;"></span></div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); padding: 24px; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+                            <h3 style="margin-bottom: 16px; color: var(--text-secondary); text-transform: uppercase; font-size: 12px; letter-spacing: 0.05em;">Account Status</h3>
+                            <div style="margin-bottom: 12px;"><strong>Status:</strong> <span id="profileStatus" style="margin-left: 8px;"></span></div>
+                            <div style="margin-bottom: 12px;"><strong>Last Seen:</strong> <span id="profileLastSeen" style="margin-left: 8px;"></span></div>
+                        </div>
+                    </div>
+                </div> <!-- End userProfilePage -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button id="closeSettings" class="icon-btn"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-group">
+                    <h3>Theme Options</h3>
+                    <label class="filter-option"><input type="radio" name="themeMode" value="dark" checked> Dark Theme (Defender)</label>
+                    <label class="filter-option"><input type="radio" name="themeMode" value="light"> Light Theme</label>
+                    <label class="filter-option"><input type="radio" name="themeMode" value="msblue"> Microsoft Blue Classic</label>
+                </div>
+                <div class="settings-group" style="margin-top: 24px;">
+                    <h3>Layout Options</h3>
+                    <label class="filter-option"><input type="checkbox" id="mobileViewToggle"> Enable Mobile View</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row Action Menu -->
+    <div id="rowActionMenu" class="row-action-menu">
+        <div class="row-action-item" id="actionDetails"><i class="ph ph-user-circle"></i> View Details</div>
+        <div class="row-action-item" id="actionDisable" style="color: var(--risk-high);"><i class="ph ph-prohibit"></i> Disable Account</div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="./app.js"></script>
+</body>
+</html>
